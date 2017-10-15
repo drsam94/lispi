@@ -6,61 +6,24 @@ ENUM(TokenType, uint8_t, Paren, String, Symbol, Number, Trivia, Error)
 
 class Token {
     TokenType type;
-    // Lisp offers arbitrary precision, rigth?
-    std::variant<long, double, std::string> data;
+    std::string data;
+  public:
     Token() : type(TokenType::Error) {}
     Token(const Token&) = default;
     Token operator=(const Token&) = default;
     Token(const Token&&) = default;
     Token operator=(const Token&&) = default;
 
-    template <TokenType::EnumT _ty>
-    explicit Token(std::string_view val) : type(_ty) {
-        if (!parseVal<_ty>(val)) {
-            type = TokenType::Error;
-        }
-    }
+    Token(TokenType ty, std::string_view val) : type(ty), data(val) {}
+
+    TokenType getType() const { return type; }
+
+    std::string_view getText() const { return data; }
+
+    bool isOpenParen() const { return type == TokenType::Paren && get<std::string>(data)[0] == '('; }
+
+    bool isCloseParen() const { return type == TokenType::Paren && get<std::string>(data)[0] == ')'; }
   private:
-    template <TokenType::EnumT _ty>
-    bool parseVal(std::string_view val);
 };
 
-template<>
-bool parseVal<TokenType::Paren>(std::string_view val) {
-    if (val.size() == 1 && (val[0] == ')' || val[0] == '('))
-        data.emplace(val);
-        return true;
-    }
-    return false;
-}
-
-template<>
-bool parseVal<TokenType::Symbol>(std::string_view val) {
-    if (val.empty()) {
-        return false;
-    }
-    data.emplace(val);
-}
-
-template<>
-bool parseVal<TokenType::String>(std::string_view val) {
-    // TODO: Presumably, we want to store the actual string
-    // getting rid of escaped chars and such
-    data.emplace(val)
-    return true;
-}
-
-template<>
-bool parseVal<TokenType::Trivia>(std::string_view val) {
-    data.emplace(val);
-    return true;
-}
-
-template<>
-bool parseVal<TokenType::Number>(std::string_view val) {
-    double g = 0.;
-    const bool ret = sscanf(+std::string(val), "%g", &g) == 1;
-    data.emplace(g);
-    return ret;
-}
 
