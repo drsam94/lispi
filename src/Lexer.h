@@ -1,27 +1,12 @@
 // (c) 2017 Sam Donow
 #pragma once
 #include "util/Enum.h"
+#include "Token.h"
 
-ENUM(TokenType, uint8_t, Paren, String, Symbol, Number, Trivia, Error)
-
-class Token {
-    TokenType type;
-    // Lisp offers arbitrary precision, rigth?
-    std::variant<long, double, std::string> data;
-    Token() : type(TokenType::Error) {}
-    Token(const Token&) = default;
-    Token operator=(const Token&) = default;
-    Token(const Token&&) = default;
-    Token operator=(const Token&&) = default;
-
-    template <TokenType::EnumT _ty>
-    explicit Token(std::string_view val) : type(_ty) {
-        parseVal<_ty>(val);
-    }
-
-    template <TokenType::EnumT _ty>
-    void parseVal(std::string_view val);
-};
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <iostream>
 
 class Lexer {
     static bool isParen(char c) { return c == '(' || c == ')'; }
@@ -30,7 +15,7 @@ class Lexer {
 
     static bool isNumeric(char c) {
         // TODO: parse more than just decimal ints
-        return c >= '0' || c <= '9';
+        return c >= '0' && c <= '9';
     }
     static bool isQuote(char c) { return c == '"'; }
 
@@ -38,38 +23,34 @@ class Lexer {
         return !isParen(c) && !isSpace(c) && !isNumeric(c) && !isQuote(c);
     }
 
-    template<TokenType::EnumT type>
-    std::pair<Token, std::string_view> getToken(std::string_view input,
+    std::pair<Token, std::string_view> getToken(TokenType type, std::string_view input,
             bool (*pred)(char)) {
-        for (auto it = input.begin(); it < input.end() ++it) {
-            if (!pred(c)) {
-                size_t len = std::distance(input.begin(), it);
-                return {Token<type>(input.substr(0, len)), input.substr(len)};
-            }
-        }
-        return {};
+        auto it = input.begin();
+        for (; it < input.end() && pred(*it); ++it);
+        size_t len = std::distance(input.begin(), it);
+        return {Token(type, input.substr(0, len)), input.substr(len)};
     }
   public:
     std::pair<Token, std::string_view> next(std::string_view input) {
         if (isParen(input[0])) {
-            return getToken<TokenType::Paren>(input, &Parser::isParen);
+            return getToken(TokenType::Paren, input, &Lexer::isParen);
         } else if (isSpace(input[0])) {
-            return getToken<TokenType::Trivia>(input, &Parser::isSpace);
+            return getToken(TokenType::Trivia, input, &Lexer::isSpace);
         } else if (isNumeric(input[0])) {
-            return getToken<TokenType::Number>(input, &Parser::isNumeric);
+            return getToken(TokenType::Number, input, &Lexer::isNumeric);
         } else if (isQuote(input[0])) {
             // TODO: make this actually work, this only grabs the empty string
-            return getToken<TokenType::String>(input, &Parser::isQuote);
+            return getToken(TokenType::String, input, &Lexer::isQuote);
         } else {
-            return getToken<TokenType::Symbol>(input, &Parser::isSymbolic);
+            return getToken(TokenType::Symbol, input, &Lexer::isSymbolic);
         }
     }
 
-    vector<Token> getTokens(std::string_view input) {
-        vector<Token> tokens;
+    std::vector<Token> getTokens(std::string_view input) {
+        std::vector<Token> tokens;
         while (!input.empty()) {
-            tie(tokens.emplace_back(), input) = next(input);
+            std::tie(tokens.emplace_back(), input) = next(input);
         }
         return tokens;
     }
-}
+};

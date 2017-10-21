@@ -33,3 +33,6 @@
 
 # vim swap files
 *.swp
+
+#bin dir
+bin/*

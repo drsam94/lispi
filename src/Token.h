@@ -1,18 +1,16 @@
 // (c) 2017 Sam Donow
 #pragma once
 #include "util/Enum.h"
+#include <iostream>
+#include <string>
 
 ENUM(TokenType, uint8_t, Paren, String, Symbol, Number, Trivia, Error)
 
 class Token {
-    TokenType type;
+    TokenType type{TokenType::Error};
     std::string data;
   public:
-    Token() : type(TokenType::Error) {}
-    Token(const Token&) = default;
-    Token operator=(const Token&) = default;
-    Token(const Token&&) = default;
-    Token operator=(const Token&&) = default;
+    Token() = default;
 
     Token(TokenType ty, std::string_view val) : type(ty), data(val) {}
 
@@ -20,10 +18,16 @@ class Token {
 
     std::string_view getText() const { return data; }
 
-    bool isOpenParen() const { return type == TokenType::Paren && get<std::string>(data)[0] == '('; }
+    bool isOpenParen() const { return type == TokenType::Paren && data[0] == '('; }
 
-    bool isCloseParen() const { return type == TokenType::Paren && get<std::string>(data)[0] == ')'; }
+    bool isCloseParen() const { return type == TokenType::Paren && data[0] == ')'; }
+
+    friend std::ostream& operator<<(std::ostream& os, const Token& token);
   private:
 };
+
+std::ostream& operator<<(std::ostream& os, const Token &token) {
+    return os << "Token(" << token.type << ": '" << token.data << "')";
+}
 
 
