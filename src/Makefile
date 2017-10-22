@@ -1,10 +1,16 @@
 CC = g++
-CFLAGS = --std=c++1z -Wall -Werror -Wextra -Wpedantic
+CFLAGS = -g --std=c++1z -Wall -Werror -Wextra -Wpedantic
+OBJS = allObjs
 
-all:
-	$(CC) $(CFLAGS) -O3 -g main.cc -o ../bin/lispi
-debug:
-	$(CC) $(CFLAGS) -O0 -g main.cc -o ../bin/lispi.debug
+all: release test debug
+release: $(OBJS)
+	$(CC) $(CFLAGS) -O3 main.cc *.o -o ../bin/lispi
+debug: $(OBJS)
+	$(CC) $(CFLAGS) -O0 main.cc *.o -o ../bin/lispi.debug
+test: $(OBJS)
+	$(CC) $(CFLAGS) -O0 test.cc *.o -o ../bin/test_runner
 
+allObjs:
+	$(CC) $(CFLAGS) -O3 -c Lexer.cc Parser.cc
 clean:
 	rm *.o

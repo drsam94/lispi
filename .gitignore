@@ -36,3 +36,5 @@
 
 #bin dir
 bin/*
+.vscode/*
+.vscode

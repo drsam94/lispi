@@ -8,6 +8,9 @@
 #include <vector>
 #include <iostream>
 
+/// The Lexer is responsible for converting the input text to a stream of tokens,
+/// which can either be accessed one at a time through ::next or all at once through
+/// getTokens()
 class Lexer {
     static bool isParen(char c) { return c == '(' || c == ')'; }
 
@@ -23,34 +26,11 @@ class Lexer {
         return !isParen(c) && !isSpace(c) && !isNumeric(c) && !isQuote(c);
     }
 
-    std::pair<Token, std::string_view> getToken(TokenType type, std::string_view input,
-            bool (*pred)(char)) {
-        auto it = input.begin();
-        for (; it < input.end() && pred(*it); ++it);
-        size_t len = std::distance(input.begin(), it);
-        return {Token(type, input.substr(0, len)), input.substr(len)};
-    }
-  public:
-    std::pair<Token, std::string_view> next(std::string_view input) {
-        if (isParen(input[0])) {
-            return getToken(TokenType::Paren, input, &Lexer::isParen);
-        } else if (isSpace(input[0])) {
-            return getToken(TokenType::Trivia, input, &Lexer::isSpace);
-        } else if (isNumeric(input[0])) {
-            return getToken(TokenType::Number, input, &Lexer::isNumeric);
-        } else if (isQuote(input[0])) {
-            // TODO: make this actually work, this only grabs the empty string
-            return getToken(TokenType::String, input, &Lexer::isQuote);
-        } else {
-            return getToken(TokenType::Symbol, input, &Lexer::isSymbolic);
-        }
-    }
+    std::pair<Token, std::string_view>
+    getToken(TokenType type, std::string_view input, bool (*pred)(char));
 
-    std::vector<Token> getTokens(std::string_view input) {
-        std::vector<Token> tokens;
-        while (!input.empty()) {
-            std::tie(tokens.emplace_back(), input) = next(input);
-        }
-        return tokens;
-    }
+  public:
+    std::pair<Token, std::string_view> next(std::string_view input);
+
+    std::vector<Token> getTokens(std::string_view input);
 };

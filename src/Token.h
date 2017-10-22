@@ -22,12 +22,16 @@ class Token {
 
     bool isCloseParen() const { return type == TokenType::Paren && data[0] == ')'; }
 
-    friend std::ostream& operator<<(std::ostream& os, const Token& token);
-  private:
+    friend std::ostream& operator<<(std::ostream&, const Token&);
+    friend bool operator==(const Token&, const Token&);
 };
 
-std::ostream& operator<<(std::ostream& os, const Token &token) {
+inline std::ostream& operator<<(std::ostream& os, const Token &token) {
     return os << "Token(" << token.type << ": '" << token.data << "')";
+}
+
+inline bool operator==(const Token& first, const Token& second) {
+    return first.type == second.type && first.data == second.data;
 }
 
 
