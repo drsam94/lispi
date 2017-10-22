@@ -20,7 +20,7 @@ namespace TestSuite {
         }                                                                      \
     } while (0);
 
-#define TS_ASSERT(x) _TEST_ASSERT((x), "%s", #x "failed")
+#define TS_ASSERT(x) _TEST_ASSERT((x), #x " failed")
 
 // Prints a helpful message so long as the input types support operator<<
 #define TS_ASSERT_EQ(x, y)                                                     \

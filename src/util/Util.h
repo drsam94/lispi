@@ -26,4 +26,4 @@ namespace std {
 // A helper for conveniently using std::visit in a pattern-matching like way
 template<class... Ts>
 struct Visitor : Ts... { using Ts::operator()...; };
-template<class... Ts> Visitor(Ts...) -> overloaded<Ts...>;
+template<class... Ts> Visitor(Ts...) -> Visitor<Ts...>;

@@ -1,42 +1,30 @@
 // (c) 2017 Sam Donow
 #pragma once
-
 #include "Data.h"
 
 #include <memory>
 class Evaluator {
     std::shared_ptr<SymbolTable> globalScope;
+
+    /// If the given datum is atomic, get the value of the desired type (if it
+    /// exists) otherwise, recursively evaluate until we return something of the
+    /// desired type.
+    /// return nullopt if there is a failure at any point
+    template <typename T>
+    std::optional<T> getOrEvaluate(const Datum &datum,
+                                   std::shared_ptr<SymbolTable> st);
+
+    /// Evaluate a lisp function on the given args
+    std::optional<Datum> evalFunction(const LispFunction &func,
+                                      const std::list<Datum> &args,
+                                      std::shared_ptr<SymbolTable> st);
+
   public:
-    Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
-        globalScope->emplace("+", [](std::list<Datum> &inputs) -> Datum {
-            double sum{};
-            for (Datum &datum : inputs) {
-                if (auto val = datum.getAtomicValue<double>(); bool(val)) {
-                    sum += *val;
-                } else {
-                    throw "a structured runtime error";
-                }
-            }
-            Datum datum;
-            Atom atom;
-            atom.data = sum;
-            datum.data.emplace<Atom>(std::move(atom));
-            return datum;
-        });
-    }
+    /// On construction, we populate the global scope with all of the special
+    /// forms and language-level functions
+    Evaluator();
 
-    std::optional<Datum> eval(SExpr &expr) {
-        // TODO: recursively eval, support more special forms, etc;
-        auto sym = expr.car.getAtomicValue<Symbol>();
-        if (!sym) {
-            return std::nullopt;
-        }
-
-        auto &scopeElem = (*globalScope)[+*sym];
-        if (!std::holds_alternative<SpecialForm>(scopeElem)) {
-            return std::nullopt;
-        }
-
-        return std::get<SpecialForm>(scopeElem)(expr.cdr);
-    }
+    /// Main public interface: evaluates an expression in a given scope
+    std::optional<Datum> eval(const SExpr &expr,
+                              std::shared_ptr<SymbolTable> scope = nullptr);
 };

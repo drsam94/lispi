@@ -1,23 +1,42 @@
 // (c) 2017 Sam Donow
 #pragma once
 
-#include<variant>
-#include<string>
-#include<memory>
-#include<list>
-#include<functional>
+#include <variant>
+#include <string>
+#include <memory>
+#include <list>
+#include <functional>
+#include <type_traits>
 
+class SExpr;
+class SymbolTable;
+
+// Class used for representing "symbols" -- the data is just a string, but we want a
+// distinct type
 struct Symbol {
     std::string val;
 
-    const std::string& operator+() { return val; }
+    const std::string& operator+() const { return val; }
+};
+
+// Type describing a function in lisp: a list of formal parameters together with
+// a definition
+struct LispFunction {
+    std::vector<Symbol> formalParameters;
+    std::shared_ptr<SExpr> definition;
+    std::shared_ptr<SymbolTable> defnScope;
 };
 
 struct Atom {
-    std::variant<std::monostate, long, double, bool, std::string, Symbol> data;
+    std::variant<std::monostate, long, double, bool,
+                 std::string, Symbol, LispFunction> data;
+
+    Atom() = default;
+    template<typename T>
+    requires (!std::is_same_v<Atom, std::remove_reference<T>>)
+    explicit Atom(T&& val) : data(std::forward<T>(val)) {}
 };
 
-class SExpr;
 struct Datum {
     // TODO: clean this up a lot
     std::variant<Atom, std::shared_ptr<SExpr>> data;
@@ -32,6 +51,14 @@ struct Datum {
             return std::nullopt;
         }
         return std::get<T>(atom.data);
+    }
+
+    const std::shared_ptr<SExpr>& getSExpr() const {
+        return std::get<std::shared_ptr<SExpr>>(data);
+    }
+
+    const Atom& getAtom() const {
+        return std::get<Atom>(data);
     }
 
     bool isAtomic() const {
@@ -50,6 +77,8 @@ struct Datum {
 
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
+    // TODO: make this a proper cons cell so that manipulations are
+    // more efficient
     std::list<Datum> cdr;
 
     SExpr(Atom atom) {
@@ -61,7 +90,9 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     }
 };
 
-using SpecialForm = std::function<Datum(std::list<Datum>&)>;
+using SpecialForm =
+    std::function<Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>)>;
+
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   private:
     std::unordered_map<std::string, std::variant<Datum, SpecialForm>> table;
