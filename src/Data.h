@@ -9,25 +9,55 @@
 
 struct Symbol {
     std::string val;
+
+    const std::string& operator+() { return val; }
 };
 
 struct Atom {
-    std::variant<std::monostate, long, double, std::string, Symbol> data;
+    std::variant<std::monostate, long, double, bool, std::string, Symbol> data;
 };
 
 class SExpr;
-using Datum = std::variant<Atom, std::shared_ptr<SExpr>>;
+struct Datum {
+    // TODO: clean this up a lot
+    std::variant<Atom, std::shared_ptr<SExpr>> data;
+
+    template<typename T>
+    std::optional<T> getAtomicValue() const {
+        if (!std::holds_alternative<Atom>(data)) {
+            return std::nullopt;
+        }
+        const Atom& atom = std::get<Atom>(data);
+        if (!std::holds_alternative<T>(atom.data)) {
+            return std::nullopt;
+        }
+        return std::get<T>(atom.data);
+    }
+
+    bool isAtomic() const {
+        return std::holds_alternative<Atom>(data);
+    }
+
+    Datum() = default;
+    Datum(Atom atom) {
+        data.emplace<Atom>(std::move(atom));
+    }
+
+    Datum(std::shared_ptr<SExpr> ptr) {
+        data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
+    }
+};
 
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
     std::list<Datum> cdr;
 
     SExpr(Atom atom) {
-        car = std::move(atom);
+        car.data.emplace<Atom>(std::move(atom));
     }
 
     SExpr(std::shared_ptr<SExpr> ptr) {
-        car = std::move(ptr);
+        car.data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
     }
 };
 
@@ -38,7 +68,8 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     std::shared_ptr<SymbolTable> parent;
 
   public:
-    explicit SymbolTable(std::shared_ptr<SymbolTable> p) : parent(std::move(p)) {}
+    explicit SymbolTable(std::shared_ptr<SymbolTable> p)
+        : parent(std::move(p)) {}
     std::variant<Datum, SpecialForm> &operator[](const std::string &s) {
         if (auto it = table.find(s); it == table.end()) {
             if (parent == nullptr) {
@@ -51,8 +82,14 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
         }
     }
 
-    std::variant<Datum, SpecialForm> &emplace(const std::string &s, const Datum &datum) {
+    std::variant<Datum, SpecialForm> &emplace(const std::string &s,
+                                              const Datum &datum) {
         return table.emplace(s, datum).first->second;
+    }
+
+    std::variant<Datum, SpecialForm> &emplace(const std::string &s,
+                                              SpecialForm form) {
+        return table.emplace(s, form).first->second;
     }
 
     std::shared_ptr<SymbolTable> makeChild() {

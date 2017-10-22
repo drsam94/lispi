@@ -1,5 +1,7 @@
 // (c) Sam Donow 2017
 #include "Lexer.h"
+#include "Parser.h"
+#include "Evaluator.h"
 #include "TestSuite.h"
 #include <string>
 #include <string_view>
@@ -7,7 +9,7 @@
 
 using namespace std;
 
-void runTest(string_view programText, std::vector<Token> expectedTokens) {
+void runLexTest(string_view programText, std::vector<Token> expectedTokens) {
     Lexer lex;
     std::vector<Token> actualTokens  = lex.getTokens(programText);
     TS_ASSERT_EQ(actualTokens.size(), expectedTokens.size());
@@ -18,25 +20,37 @@ void runTest(string_view programText, std::vector<Token> expectedTokens) {
     }
 }
 
+void runEvalTest(string_view programText, long result) {
+    Lexer lex;
+    Parser parser;
+    Evaluator ev;
+    auto tokens = lex.getTokens(programText);
+    auto expr   = *parser.parse(tokens);
+    TS_ASSERT_EQ(*ev.eval(expr)->getAtomicValue<double>(), result);
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
-    runTest("(+ 1 2)"sv,  {{TokenType::Paren, "("sv},
-                           {TokenType::Symbol, "+"sv},
-                           {TokenType::Number, "1"sv},
-                           {TokenType::Number, "2"sv},
-                           {TokenType::Paren, ")"sv}});
+    runLexTest("(+ 1 2)"sv, {{TokenType::Paren, "("sv},
+                              {TokenType::Symbol, "+"sv},
+                              {TokenType::Number, "1"sv},
+                              {TokenType::Number, "2"sv},
+                              {TokenType::Paren, ")"sv}});
 
-    runTest("(atom? (quote (234 <=>)))"sv, {{TokenType::Paren, "("sv},
-                                             {TokenType::Symbol, "atom?"sv},
-                                             {TokenType::Paren, "("sv},
-                                             {TokenType::Symbol, "quote"sv},
-                                             {TokenType::Paren, "("sv},
-                                             {TokenType::Number, "234"sv},
-                                             {TokenType::Symbol, "<=>"sv},
-                                             {TokenType::Paren, ")"sv},
-                                             {TokenType::Paren, ")"sv},
-                                             {TokenType::Paren, ")"sv}});
+    runLexTest("(atom? (quote (234 <=>)))"sv, {{TokenType::Paren, "("sv},
+                                                {TokenType::Symbol, "atom?"sv},
+                                                {TokenType::Paren, "("sv},
+                                                {TokenType::Symbol, "quote"sv},
+                                                {TokenType::Paren, "("sv},
+                                                {TokenType::Number, "234"sv},
+                                                {TokenType::Symbol, "<=>"sv},
+                                                {TokenType::Paren, ")"sv},
+                                                {TokenType::Paren, ")"sv},
+                                                {TokenType::Paren, ")"sv}});
+
+    runEvalTest("(+ 45 23)"sv, 68);
+    runEvalTest("(+ 1 2 3 4 )"sv, 10);
     TS_SUMMARIZE();
 }

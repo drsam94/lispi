@@ -2,7 +2,7 @@
 #include "Parser.h"
 
 std::optional<SExpr> Parser::parse(std::vector<Token> &tokens) {
-    if (tokens.empty() || tokens.begin()->isOpenParen()) {
+    if (tokens.empty() || !tokens.begin()->isOpenParen()) {
         return std::nullopt;
     }
     auto[ret, it] = parseImpl(tokens.begin(), tokens.end());

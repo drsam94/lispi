@@ -17,7 +17,7 @@ class Lexer {
     static bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n'; }
 
     static bool isNumeric(char c) {
-        // TODO: parse more than just decimal ints
+        // TODO: parse more than just decimal integers; support doubles, etc
         return c >= '0' && c <= '9';
     }
     static bool isQuote(char c) { return c == '"'; }

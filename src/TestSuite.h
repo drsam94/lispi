@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 
+// This file contains macros for writing very lightweight unit test runners
 namespace TestSuite {
     inline size_t passedTests = 0;
     inline size_t failedTests = 0;
