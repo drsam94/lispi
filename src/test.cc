@@ -65,5 +65,8 @@ int main(int argc, char **argv) {
     // me...maybe I'll just call it a language extension until/unless I see a reason not
     // to allow it
     runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15);
+
+    runEvalTest("(if nil 4 5)"sv, 5);
+    runEvalTest("(if 1 4 5)"sv, 4);
     TS_SUMMARIZE();
 }

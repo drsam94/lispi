@@ -35,6 +35,16 @@ struct Atom {
     template<typename T>
     requires (!std::is_same_v<Atom, std::remove_reference<T>>)
     explicit Atom(T&& val) : data(std::forward<T>(val)) {}
+
+    template<typename T>
+    decltype(auto) get() const {
+        return std::get<T>(data);
+    }
+
+    template<typename T>
+    bool contains() const {
+        return std::holds_alternative<T>(data);
+    }
 };
 
 struct Datum {
@@ -47,10 +57,10 @@ struct Datum {
             return std::nullopt;
         }
         const Atom& atom = std::get<Atom>(data);
-        if (!std::holds_alternative<T>(atom.data)) {
+        if (!atom.contains<T>()) {
             return std::nullopt;
         }
-        return std::get<T>(atom.data);
+        return atom.get<T>();
     }
 
     const std::shared_ptr<SExpr>& getSExpr() const {
@@ -63,6 +73,10 @@ struct Datum {
 
     bool isAtomic() const {
         return std::holds_alternative<Atom>(data);
+    }
+
+    bool isNil() const {
+        return !isAtomic() && getSExpr() == nullptr;
     }
 
     Datum() = default;
