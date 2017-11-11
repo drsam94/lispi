@@ -1,16 +1,22 @@
 CC = g++
-CFLAGS = -g --std=c++1z -Wall -Werror -Wextra -Wpedantic -fconcepts
-OBJS = allObjs
+OPT = 3
+CFLAGS = -g --std=c++1z -Wall -Werror -Wextra -Wpedantic -fconcepts -O$(OPT)
+OBJDIR = ../build
+OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o
 
 all: release test debug
-release: $(OBJS)
-	$(CC) $(CFLAGS) -O0 main.cc *.o -o ../bin/lispi
-debug: $(OBJS)
-	$(CC) $(CFLAGS) -O0 main.cc *.o -o ../bin/lispi.debug
-test: $(OBJS)
-	$(CC) $(CFLAGS) -O0 test.cc *.o -o ../bin/test_runner
 
-allObjs:
-	$(CC) $(CFLAGS) -O0 -c Lexer.cc Parser.cc Evaluator.cc
+release: $(OBJS)
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi
+debug: OPT = 0
+debug: $(OBJS)
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi.debug
+test: OPT = 0
+test: $(OBJS)
+	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o ../bin/test_runner
+
+$(OBJDIR)/%.o : %.cc
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 clean:
-	rm *.o
+	rm $(OBJDIR)/*.o
