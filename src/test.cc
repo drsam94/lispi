@@ -20,7 +20,7 @@ void runLexTest(string_view programText, std::vector<Token> expectedTokens) {
     }
 }
 
-void runEvalTest(string_view programText, long result) {
+void runEvalTest(string_view programText, Number result) {
     Lexer lex;
     Parser parser;
     Evaluator ev;
@@ -29,13 +29,11 @@ void runEvalTest(string_view programText, long result) {
     if (!expr) {
         TS_ASSERT(false);
     } else {
-        TS_ASSERT_EQ(*ev.eval(*expr)->getAtomicValue<double>(), result);
+        TS_ASSERT_EQ(*ev.eval(*expr)->getAtomicValue<Number>(), result);
     }
 }
 
-int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
     runLexTest("(+ 1 2)"sv, {{TokenType::Paren, "("sv},
                               {TokenType::Symbol, "+"sv},
@@ -54,19 +52,21 @@ int main(int argc, char **argv) {
                                                 {TokenType::Paren, ")"sv},
                                                 {TokenType::Paren, ")"sv}});
 
-    runEvalTest("(+ 45 23)"sv, 68);
-    runEvalTest("(+ 1 2 3 4 )"sv, 10);
-    runEvalTest("((lambda (x) x) 4)"sv, 4);
-    runEvalTest("((lambda (x) (+ x x)) 4)"sv, 8);
-    runEvalTest("((lambda (x y) (+ x y)) 4 5)"sv, 9);
+    runEvalTest("(+ 45 23)"sv, 68L);
+    runEvalTest("(+ 1 2 3 4 )"sv, 10L);
+    runEvalTest("((lambda (x) x) 4)"sv, 4L);
+    runEvalTest("((lambda (x) (+ x x)) 4)"sv, 8L);
+    runEvalTest("((lambda (x y) (+ x y)) 4 5)"sv, 9L);
     // Turns out that after all of the effort I went into getting this test
     // to work, this syntax isn't even supported in clisp, to apply a function passed as
     // an arg you need (apply f (args...)) ... seems kind of odd though, this makes sense to
     // me...maybe I'll just call it a language extension until/unless I see a reason not
     // to allow it
-    runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15);
+    runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15L);
 
-    runEvalTest("(if nil 4 5)"sv, 5);
-    runEvalTest("(if 1 4 5)"sv, 4);
+    runEvalTest("(if nil 4 5)"sv, 5L);
+    runEvalTest("(if 1 4 5)"sv, 4L);
+
+    runEvalTest("(+ 3.4 4.5)", 7.9);
     TS_SUMMARIZE();
 }

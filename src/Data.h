@@ -1,12 +1,14 @@
 // (c) 2017 Sam Donow
 #pragma once
 
-#include <variant>
-#include <string>
-#include <memory>
-#include <list>
+#include "Number.h"
+
 #include <functional>
+#include <list>
+#include <memory>
+#include <string>
 #include <type_traits>
+#include <variant>
 
 class SExpr;
 class SymbolTable;
@@ -28,7 +30,7 @@ struct LispFunction {
 };
 
 struct Atom {
-    std::variant<std::monostate, long, double, bool,
+    std::variant<std::monostate, Number, bool,
                  std::string, Symbol, LispFunction> data;
 
     Atom() = default;

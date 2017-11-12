@@ -127,9 +127,9 @@ Evaluator::eval(const SExpr &expr,
 
 Datum Evaluator::builtinAdd(const std::list<Datum> &inputs,
                  std::shared_ptr<SymbolTable> st) {
-    double sum{};
+    Number sum{};
     for (const Datum &datum : inputs) {
-        if (auto val = Evaluator::getOrEvaluate<double>(datum, st); bool(val)) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             sum += *val;
         } else {
             throw "TODO: a structured runtime error";

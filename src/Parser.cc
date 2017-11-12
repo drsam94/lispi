@@ -1,6 +1,7 @@
 // (c) 2017 Sam Donow
 #include "Parser.h"
 
+#include <math.h>
 std::optional<SExpr> Parser::parse(std::vector<Token> &tokens) {
     if (tokens.empty() || !tokens.begin()->isOpenParen()) {
         return std::nullopt;
@@ -23,10 +24,14 @@ Atom Parser::atomFromToken(Token token) {
         break;
     }
     case TokenType::Number: {
-        // TODO handle this properly for integers
+        // TODO handle this properly for more general inputs
         double d;
         sscanf(token.getText().data(), "%lf", &d);
-        atom.data.emplace<double>(d);
+        if (fmod(d, 1.0) != 0.0) {
+            atom.data.emplace<Number>(d);
+        } else {
+            atom.data.emplace<Number>(static_cast<long>(d));
+        }
         break;
     }
 

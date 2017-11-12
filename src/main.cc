@@ -28,6 +28,6 @@ int main(int argc, char **argv) {
 
     Evaluator evaluator;
     auto result = evaluator.eval(*expr);
-    cout << *result->getAtomicValue<double>() << std::endl;
+    cout << *result->getAtomicValue<Number>() << std::endl;
     return 0;
 }
