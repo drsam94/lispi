@@ -49,8 +49,7 @@ class Number {
 
     friend std::ostream &operator<<(std::ostream &os, const Number &num) {
         return std::visit(Visitor {
-            [&os](auto v)   -> std::ostream& { return os << v; },
-            [&os](double v) -> std::ostream& { return os << v; }
+            [&os](auto v)   -> std::ostream& { return os << v; }
         }, num.data);
     }
 };

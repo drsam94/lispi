@@ -19,6 +19,9 @@ struct Symbol {
     std::string val;
 
     const std::string& operator+() const { return val; }
+    friend std::ostream &operator<<(std::ostream &os, const Symbol &sym) {
+        return os << +sym;
+    }
 };
 
 // Type describing a function in lisp: a list of formal parameters together with
@@ -46,6 +49,14 @@ struct Atom {
     template<typename T>
     bool contains() const {
         return std::holds_alternative<T>(data);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const Atom &atom) {
+        return std::visit(Visitor {
+            [&os](const std::monostate&) -> std::ostream& { return os << "<err>"; },
+            [&os](const LispFunction&) -> std::ostream& { return os << "<func>"; },
+            [&os](const auto &n) -> std::ostream& { return os << n; }
+        }, atom.data);
     }
 };
 
@@ -88,6 +99,15 @@ struct Datum {
 
     Datum(std::shared_ptr<SExpr> ptr) {
         data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const Datum &datum) {
+        return std::visit(Visitor {
+            [&os](const Atom &atom) -> std::ostream& { return os << atom; },
+            [&os](const std::shared_ptr<SExpr> &) -> std::ostream& {
+                return os << "<sexpr>";
+            }
+        }, datum.data);
     }
 };
 

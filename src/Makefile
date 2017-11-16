@@ -8,10 +8,10 @@ all: release test debug
 
 release: OPT = 0
 release: $(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi -lreadline
 debug: OPT = 0
 debug: $(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi.debug
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi.debug -lreadline
 test: OPT = 0
 test: $(OBJS)
 	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o ../bin/test_runner
