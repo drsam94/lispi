@@ -20,12 +20,13 @@ class Evaluator {
                                       std::shared_ptr<SymbolTable> st);
 
     /// defintions of builtins/special forms
-    static Datum builtinAdd(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
-    static Datum builtinSub(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
-    static Datum builtinMul(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
-    static Datum builtinDiv(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
-    static Datum builtinLambdaSF(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
-    static Datum builtinIfSF(const std::list<Datum> &args, std::shared_ptr<SymbolTable> st);
+    static BuiltInFunc builtinAdd;
+    static BuiltInFunc builtinSub;
+    static BuiltInFunc builtinMul;
+    static BuiltInFunc builtinDiv;
+    static BuiltInFunc builtinLambdaSF;
+    static BuiltInFunc builtinIfSF;
+    static BuiltInFunc builtinDefineSF;
   public:
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions

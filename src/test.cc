@@ -57,16 +57,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("((lambda (x) x) 4)"sv, 4L);
     runEvalTest("((lambda (x) (+ x x)) 4)"sv, 8L);
     runEvalTest("((lambda (x y) (+ x y)) 4 5)"sv, 9L);
-    // Turns out that after all of the effort I went into getting this test
-    // to work, this syntax isn't even supported in clisp, to apply a function passed as
-    // an arg you need (apply f (args...)) ... seems kind of odd though, this makes sense to
-    // me...maybe I'll just call it a language extension until/unless I see a reason not
-    // to allow it
     runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15L);
 
     runEvalTest("(if nil 4 5)"sv, 5L);
     runEvalTest("(if 1 4 5)"sv, 4L);
 
-    runEvalTest("(+ 3.4 4.5)", 7.9);
+    runEvalTest("(+ 3.4 4.5)"sv, 7.9);
+    runEvalTest("(* 4 (+ 2 3))"sv, 20);
+    // TODO test define (requires test with persistent Evaluator)
     TS_SUMMARIZE();
 }

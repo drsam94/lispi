@@ -53,7 +53,7 @@ struct Atom {
 
     friend std::ostream &operator<<(std::ostream &os, const Atom &atom) {
         return std::visit(Visitor {
-            [&os](const std::monostate&) -> std::ostream& { return os << "<err>"; },
+            [&os](const std::monostate&) -> std::ostream& { return os << "<none>"; },
             [&os](const LispFunction&) -> std::ostream& { return os << "<func>"; },
             [&os](const auto &n) -> std::ostream& { return os << n; }
         }, atom.data);
@@ -126,8 +126,8 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     }
 };
 
-using SpecialForm =
-    std::function<Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>)>;
+using BuiltInFunc = Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>);
+using SpecialForm = std::function<BuiltInFunc>;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   private:

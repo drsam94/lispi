@@ -6,8 +6,11 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     // TODO: have a distinciton between true "special forms" (i.e if, quote)
     // and library-defined functions (like "+")
     globalScope->emplace("+", &Evaluator::builtinAdd);
+    globalScope->emplace("-", &Evaluator::builtinSub);
+    globalScope->emplace("*", &Evaluator::builtinMul);
     globalScope->emplace("lambda", &Evaluator::builtinLambdaSF);
     globalScope->emplace("if", &Evaluator::builtinIfSF);
+    globalScope->emplace("define", &Evaluator::builtinDefineSF);
     globalScope->emplace("nil", Datum{nullptr});
 }
 
@@ -126,7 +129,7 @@ Evaluator::eval(const SExpr &expr,
 }
 
 Datum Evaluator::builtinAdd(const std::list<Datum> &inputs,
-                 std::shared_ptr<SymbolTable> st) {
+                            std::shared_ptr<SymbolTable> st) {
     Number sum{};
     for (const Datum &datum : inputs) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
@@ -135,7 +138,33 @@ Datum Evaluator::builtinAdd(const std::list<Datum> &inputs,
             throw "TODO: a structured runtime error";
         }
     }
-    return {Atom(sum)};
+    return {Atom{sum}};
+}
+
+Datum Evaluator::builtinSub(const std::list<Datum> &inputs,
+                            std::shared_ptr<SymbolTable> st) {
+    Number diff{};
+    for (const Datum &datum : inputs) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
+            diff -= *val;
+        } else {
+            throw "TODO: a structured runtime error";
+        }
+    }
+    return {Atom{diff}};
+}
+
+Datum Evaluator::builtinMul(const std::list<Datum> &inputs,
+                            std::shared_ptr<SymbolTable> st) {
+    Number prod{1L};
+    for (const Datum &datum : inputs) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
+            prod *= *val;
+        } else {
+            throw "TODO: a structured runtime error";
+        }
+    }
+    return {Atom{prod}};
 }
 
 Datum Evaluator::builtinLambdaSF(const std::list<Datum> &inputs,
@@ -172,6 +201,48 @@ Datum Evaluator::builtinLambdaSF(const std::list<Datum> &inputs,
                                       ? std::make_shared<SExpr>(defn.getAtom())
                                       : defn.getSExpr();
     return {Atom{LispFunction{std::move(formals), impl, st}}};
+}
+
+Datum Evaluator::builtinDefineSF(const std::list<Datum> &inputs,
+                        std::shared_ptr<SymbolTable> st) {
+    if (inputs.size() != 2) {
+        throw "TODO: a structured runtime error";
+    }
+    auto inputIt = inputs.begin();
+    if (inputIt->isAtomic()) {
+        // We are defining a constant
+        std::optional<Symbol> varName = inputIt->getAtomicValue<Symbol>();
+        if (!varName) {
+            throw "TODO";
+        }
+        ++inputIt;
+        std::optional<Datum> value = eval(inputIt->getSExpr(), st);
+        if (!value) {
+            throw "TODO";
+        }
+        st->emplace(+*varName, *value);
+        return {};
+    }
+    const auto &declarator = inputIt->getSExpr();
+    auto funName = declarator->car.getAtomicValue<Symbol>();
+    if (!funName) {
+        throw "TODO";
+    }
+    std::vector<Symbol> formals;
+    for (const Datum &datum : declarator->cdr) {
+        auto param = datum.getAtomicValue<Symbol>();
+        if (!param) {
+            throw "TODO";
+        }
+        formals.emplace_back(std::move(*param));
+    }
+    ++inputIt;
+    const auto &defn = *inputIt;
+    std::shared_ptr<SExpr> impl = defn.isAtomic()
+                                    ? std::make_shared<SExpr>(defn.getAtom())
+                                    : defn.getSExpr();
+    st->emplace(+*funName, Datum{Atom{LispFunction{std::move(formals), impl, st}}});
+    return {};
 }
 
 Datum Evaluator::builtinIfSF(const std::list<Datum> &inputs,
