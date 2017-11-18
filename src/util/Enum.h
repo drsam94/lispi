@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 class EnumInternal {
   protected:
@@ -34,18 +35,18 @@ class EnumInternal {
         static inline const size_t Count = UnderlyingType(EnumT::Unset) + 1;   \
                                                                                \
       private:                                                                 \
-        UnderlyingType val;                                                    \
+        UnderlyingType _val;                                                   \
         static inline const std::array<std::string, Count> _names =            \
             internalGetArr<Count>(#__VA_ARGS__);                               \
                                                                                \
       public:                                                                  \
-        EnumType() : val(EnumT::Unset) {}                                      \
-        constexpr EnumType(UnderlyingType ul) : val(ul) {}                     \
-        constexpr EnumType(EnumT other) : val(other){};                        \
-        operator EnumT() const { return static_cast<EnumT>(val); }             \
+        EnumType() : _val(EnumT::Unset) {}                                     \
+        constexpr EnumType(UnderlyingType ul) : _val(ul) {}                    \
+        constexpr EnumType(EnumT other) : _val(other){};                       \
+        operator EnumT() const { return static_cast<EnumT>(_val); }            \
         explicit operator UnderlyingType() const { return toUnderlying(); }    \
-        UnderlyingType toUnderlying() const { return val; }                    \
-        static EnumType parse(const std::string &name) {                       \
+        UnderlyingType toUnderlying() const { return _val; }                   \
+        static EnumType parse(std::string_view name) {                         \
             if (auto it = std::find(_names.begin(), _names.end(), name);       \
                 it != _names.end())                                            \
                 return static_cast<UnderlyingType>(it - _names.begin());       \
@@ -53,13 +54,15 @@ class EnumInternal {
                 return EnumT::Unset;                                           \
         }                                                                      \
         const std::string &str() const {                                       \
-            return _names[size_t(toUnderlying())];                             \
+            return _names[static_cast<size_t>(toUnderlying())];                             \
         }                                                                      \
         friend std::ostream &operator<<(std::ostream &os,                      \
                                         const EnumType &val) {                 \
             return os << val.str();                                            \
         }                                                                      \
-        bool valid() const { return static_cast<EnumT>(val) != EnumT::Unset; } \
+        bool valid() const {                                                   \
+            return static_cast<EnumT>(_val) != EnumT::Unset;                   \
+        }                                                                      \
         static std::array<EnumType, Count - 1> values() {                      \
             std::array<EnumType, Count - 1> ret;                               \
             for (UnderlyingType i = 0; i < EnumT::Unset; ++i) {                \

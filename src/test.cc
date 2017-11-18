@@ -63,7 +63,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("(if 1 4 5)"sv, 4L);
 
     runEvalTest("(+ 3.4 4.5)"sv, 7.9);
-    runEvalTest("(* 4 (+ 2 3))"sv, 20);
+    runEvalTest("(* 4 (+ 2 3))"sv, 20L);
     // TODO test define (requires test with persistent Evaluator)
     TS_SUMMARIZE();
 }

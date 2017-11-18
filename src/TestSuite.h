@@ -28,8 +28,8 @@ namespace TestSuite {
         const auto _tmp_x = (x);                                               \
         const auto _tmp_y = (y);                                               \
         std::stringstream _stream;                                             \
-        const bool result = _tmp_x == _tmp_y;                                  \
-        if (result) {                                                          \
+        const bool _result = _tmp_x == _tmp_y;                                 \
+        if (_result) {                                                         \
             ++TestSuite::passedTests;                                          \
             break;                                                             \
         }                                                                      \

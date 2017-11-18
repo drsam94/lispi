@@ -37,9 +37,9 @@ struct Atom {
                  std::string, Symbol, LispFunction> data;
 
     Atom() = default;
-    template<typename T>
-    requires (!std::is_same_v<Atom, std::remove_reference<T>>)
-    explicit Atom(T&& val) : data(std::forward<T>(val)) {}
+    template <typename T, typename = std::enable_if_t<
+                              !std::is_same_v<Atom, std::remove_reference<T>>>>
+    explicit Atom(T &&val) : data(std::forward<T>(val)) {}
 
     template<typename T>
     decltype(auto) get() const {

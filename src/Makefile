@@ -1,6 +1,7 @@
 CC = g++
 OPT = 3
-CFLAGS = -g --std=c++1z -Wall -Werror -Wextra -Wpedantic -fconcepts -O$(OPT)
+WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat
+CFLAGS = -g --std=c++1z $(WARNINGS) -O$(OPT)
 OBJDIR = ../build
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o
 
