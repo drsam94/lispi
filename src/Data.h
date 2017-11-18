@@ -8,9 +8,12 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <optional>
 #include <variant>
+#include <vector>
+#include <unordered_map>
 
-class SExpr;
+struct SExpr;
 class SymbolTable;
 
 // Class used for representing "symbols" -- the data is just a string, but we want a

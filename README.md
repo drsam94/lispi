@@ -6,5 +6,7 @@ I am familiar with.
 (c) 2017 Sam Donow, software covered under the GPL license
 
 Dependencies
- - g++7.1 or newer (requires C++17 features, and is untested on clang)
- - GNU readline (sudo apt-get install libreadline-dev on Debian-based platforms)
+ - A modern C++ compiler, meaning one of:
+    - g++7.1 or newer (most supported/tested)
+    - clang++5.0 or newer and equally new libc++ (may require some manual configuration)
+ - GNU readline (sudo apt-get install libreadline-dev on Debian-based platforms) (GPL license)

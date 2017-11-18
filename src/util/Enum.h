@@ -9,8 +9,11 @@
 
 class EnumInternal {
   protected:
+    // This will be called at the beginning of the program, during static variable
+    // initialization time. We could add compile time support, but it isn't trivial
+    // as std::array, std::string, std::algorithms don't have constexpr support
     template <size_t N>
-    static constexpr std::array<std::string, N>
+    static inline std::array<std::string, N>
     internalGetArr(const std::string &&str) {
         std::array<std::string, N> ret;
         auto isWhitespace = [](char c) {
@@ -54,7 +57,7 @@ class EnumInternal {
                 return EnumT::Unset;                                           \
         }                                                                      \
         const std::string &str() const {                                       \
-            return _names[static_cast<size_t>(toUnderlying())];                             \
+            return _names[static_cast<size_t>(toUnderlying())];                \
         }                                                                      \
         friend std::ostream &operator<<(std::ostream &os,                      \
                                         const EnumType &val) {                 \
