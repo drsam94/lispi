@@ -2,10 +2,10 @@
 # simple script to run all tests in all compilers
 cd src
 make clean
-make all
-../bin/test_runner
+make sanitize
+../bin/test_runner.sanitize
 make clean
-make CC=clang++
-../bin/test_runner
+make CC=clang++ sanitize
+../bin/test_runner.sanitize
 make clean
 cd ..

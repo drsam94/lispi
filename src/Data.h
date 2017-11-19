@@ -23,7 +23,7 @@ struct Symbol {
 
     const std::string& operator+() const { return val; }
 
-    friend std::ostream &operator<<(std::ostream &os, const Symbol &sym) {
+    friend std::ostream& operator<<(std::ostream& os, const Symbol& sym) {
         return os << +sym;
     }
 };
@@ -36,14 +36,8 @@ class LispFunction {
     std::shared_ptr<SExpr> definition;
 
     LispFunction(std::vector<Symbol>&& formals, const std::shared_ptr<SExpr> defn,
-        const std::shared_ptr<SymbolTable> scope, bool isClosure) : formalParameters(std::move(formals)),
-        definition(defn) {
-            if (isClosure) {
-                defnScope.emplace<std::shared_ptr<SymbolTable>>(scope);
-            } else {
-                defnScope.emplace<SymbolTable*>(scope.get());
-            }
-        }
+        const std::shared_ptr<SymbolTable> scope, bool isClosure);
+
     std::shared_ptr<SymbolTable> funcScope() const;
   private:
     // This should be a shared_ptr for lambdas (closures), but shouldn't
@@ -75,22 +69,9 @@ struct Atom {
         return std::holds_alternative<T>(data);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Atom &atom) {
-        return std::visit(Visitor {
-            [&os](const std::monostate&) -> std::ostream& { return os << "<none>"; },
-            [&os](const LispFunction&) -> std::ostream& { return os << "<func>"; },
-            [&os](const auto &n) -> std::ostream& { return os << n; }
-        }, atom.data);
-    }
+    friend std::ostream &operator<<(std::ostream &os, const Atom &atom);
 
-    bool operator==(const Atom& other) const {
-        return std::visit(Visitor{
-            [](const Number& n1, const Number& n2) { return n1 == n2; },
-            [](bool b1, bool b2) { return b1 == b2; },
-            [](const std::string& s1, const std::string& s2) { return s1 == s2; },
-            [](const auto&, const auto&) { return false; }
-        }, data, other.data);
-    }
+    bool operator==(const Atom& other) const;
 };
 
 // Any piece of data: can be an Atom or an SExpr
@@ -134,21 +115,9 @@ class Datum {
         data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
     }
 
-    friend std::ostream &operator<<(std::ostream& os, const Datum& datum) {
-        return std::visit(Visitor {
-            [&os](const Atom &atom) -> std::ostream& { return os << atom; },
-            [&os](const std::shared_ptr<SExpr>&) -> std::ostream& {
-                return os << "<sexpr>";
-            }
-        }, datum.data);
-    }
+    friend std::ostream &operator<<(std::ostream& os, const Datum& datum);
 
-    bool operator==(const Datum& other) const {
-        return std::visit(Visitor {
-            [](const Atom& a1, const Atom& a2) { return a1 == a2; },
-            [](const auto&, const auto&) { return false; }
-        }, data, other.data);
-    }
+    bool operator==(const Datum& other) const;
 };
 
 // An SExpr/cons cell/pair
@@ -180,17 +149,7 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   public:
     explicit SymbolTable(std::shared_ptr<SymbolTable> p)
         : parent(std::move(p)) {}
-    std::variant<Datum, SpecialForm> &operator[](const std::string &s) {
-        if (auto it = table.find(s); it == table.end()) {
-            if (parent == nullptr) {
-                throw "A runtime error which should be handled in some way";
-            } else {
-                return (*parent)[s];
-            }
-        } else {
-            return it->second;
-        }
-    }
+    std::variant<Datum, SpecialForm> &operator[](const std::string &s);
 
     std::variant<Datum, SpecialForm> &emplace(const std::string &s,
                                               const Datum &datum) {
