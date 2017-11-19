@@ -62,9 +62,9 @@ Parser::parseImpl(Iterator first, Iterator last) {
             }
             const std::shared_ptr<SExpr>& ptr = *ret;
             if (!sexpr) {
-                sexpr.emplace(std::make_shared<SExpr>(std::move(ptr)));
+                sexpr.emplace(std::make_shared<SExpr>(ptr));
             } else {
-                (*sexpr)->cdr.emplace_back(std::move(ptr));
+                (*sexpr)->cdr.emplace_back(ptr);
             }
             curr = next;
         } else if (curr->getType() != TokenType::Trivia) {

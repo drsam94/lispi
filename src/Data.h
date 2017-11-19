@@ -138,7 +138,8 @@ class Datum {
 // proper implementation of the standard Lisp garbage collection mechanism. This
 // shouldn't have much overhead over the current method of using a LinkedList anyway.
 // Furthermore, it's really confusing that you can construct an SExpr from a shared_ptr<SExpr>, and
-// this caused at least one bug
+// this caused at least one bug...and it lookd like there is also a leak from this. This is the next
+// top priority for cleaning up
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
     std::list<Datum> cdr;
