@@ -17,49 +17,45 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
 template <typename T>
 std::optional<T> Evaluator::getOrEvaluate(const Datum &datum,
                                           std::shared_ptr<SymbolTable> st) {
-    return std::visit(
-        Visitor{[&](const Atom &val) -> std::optional<T> {
-                    if constexpr(!std::is_same_v<T, Symbol>) {
-                        if (val.contains<Symbol>()) {
-                            // TODO: write helpers so this is less disgusting
-                            return Evaluator::getOrEvaluate<T>(std::get<Datum>(
-                                (*st)[+val.get<Symbol>()]), st);
-                        }
-                    }
-                    return val.get<T>();
-                },
-                [&](const std::shared_ptr<SExpr> expr) -> std::optional<T> {
-                    auto result = Evaluator::eval(*expr, st);
-                    if (!result)
-                        return std::nullopt;
-                    return Evaluator::getOrEvaluate<T>(*result, st);
-                }},
-        datum.data);
+    if (datum.isAtomic()) {
+        const Atom &val = datum.getAtom();
+        if constexpr (!std::is_same_v<T, Symbol>) {
+            if (val.contains<Symbol>()) {
+                // TODO: write helpers so this is less disgusting
+                return Evaluator::getOrEvaluate<T>(
+                    std::get<Datum>((*st)[+val.get<Symbol>()]), st);
+            }
+        }
+        return val.get<T>();
+    } else {
+        const auto &expr = datum.getSExpr();
+        const std::optional<Datum> result = Evaluator::eval(expr, st);
+        if (!result)
+            return std::nullopt;
+        return Evaluator::getOrEvaluate<T>(*result, st);
+    }
 }
 
 /// Template specialization for just getting or evaluator a raw datum
 template <>
 std::optional<Datum> Evaluator::getOrEvaluate(const Datum &datum,
                                               std::shared_ptr<SymbolTable> st) {
-    return std::visit(
-        Visitor{[&](const Atom &val) -> std::optional<Datum> {
-                    if (val.contains<Symbol>()) {
-                        // This won't DTRT if you have a symbol which
-                        // maps to an SExpr (but not a fn)
-                        return getOrEvaluate<Datum>(
-                            std::get<Datum>((*st)[+val.get<Symbol>()]),
-                            st);
-                    }
-                    return Datum{val};
-                },
-                [&](const std::shared_ptr<SExpr> expr) -> std::optional<Datum> {
-                    if (expr == nullptr) {
-                        return Datum{expr};
-                    } else {
-                        return Evaluator::eval(*expr, st);
-                    }
-                }},
-        datum.data);
+    if (datum.isAtomic()) {
+        const Atom &val = datum.getAtom();
+            if (val.contains<Symbol>()) {
+                // TODO: write helpers so this is less disgusting
+                return Evaluator::getOrEvaluate<Datum>(
+                    std::get<Datum>((*st)[+val.get<Symbol>()]), st);
+            }
+        return Datum{val};
+    } else {
+        const auto &expr = datum.getSExpr();
+        if (expr == nullptr) {
+            return Datum{expr};
+        } else {
+            return Evaluator::eval(expr, st);
+        }
+    }
 }
 
 std::optional<Datum>
@@ -89,19 +85,18 @@ Evaluator::evalFunction(const LispFunction &func, const std::list<Datum> &args,
         }
         return getOrEvaluate<Datum>(func.definition->car, funcScope);
     } else {
-        return eval(*func.definition, funcScope);
+        return eval(func.definition, funcScope);
     }
 }
 
-
 std::optional<Datum>
-Evaluator::eval(const SExpr &expr,
+Evaluator::eval(const std::shared_ptr<SExpr> &expr,
                 std::shared_ptr<SymbolTable> scope) {
-    auto sym = expr.car.getAtomicValue<Symbol>();
+    auto sym = expr->car.getAtomicValue<Symbol>();
     if (sym) {
         const auto &scopeElem = (*scope)[+*sym];
         if (std::holds_alternative<SpecialForm>(scopeElem)) {
-            return std::get<SpecialForm>(scopeElem)(expr.cdr, scope);
+            return std::get<SpecialForm>(scopeElem)(expr->cdr, scope);
         }
 
         auto func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
@@ -109,11 +104,11 @@ Evaluator::eval(const SExpr &expr,
             return std::nullopt;
         }
 
-        return evalFunction(*func, expr.cdr, scope);
+        return evalFunction(*func, expr->cdr, scope);
     }
 
-    if (!expr.car.isAtomic()) {
-        auto carFunc = eval(*expr.car.getSExpr(), scope);
+    if (!expr->car.isAtomic()) {
+        auto carFunc = eval(expr->car.getSExpr(), scope);
         if (!carFunc) {
             return std::nullopt;
         }
@@ -122,7 +117,7 @@ Evaluator::eval(const SExpr &expr,
             return std::nullopt;
         }
 
-        return evalFunction(*func, expr.cdr, scope);
+        return evalFunction(*func, expr->cdr, scope);
     } else {
         return std::nullopt;
     }
@@ -144,9 +139,13 @@ Datum Evaluator::builtinAdd(const std::list<Datum> &inputs,
 Datum Evaluator::builtinSub(const std::list<Datum> &inputs,
                             std::shared_ptr<SymbolTable> st) {
     Number diff{};
-    for (const Datum &datum : inputs) {
-        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
-            diff -= *val;
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
+            if (it == inputs.begin() && inputs.size() > 1) {
+                diff = *val;
+            } else {
+                diff -= *val;
+            }
         } else {
             throw "TODO: a structured runtime error";
         }

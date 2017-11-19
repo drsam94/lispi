@@ -22,6 +22,7 @@ struct Symbol {
     std::string val;
 
     const std::string& operator+() const { return val; }
+
     friend std::ostream &operator<<(std::ostream &os, const Symbol &sym) {
         return os << +sym;
     }
@@ -35,6 +36,7 @@ struct LispFunction {
     std::shared_ptr<SymbolTable> defnScope;
 };
 
+// An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
 struct Atom {
     std::variant<std::monostate, Number, bool,
                  std::string, Symbol, LispFunction> data;
@@ -61,12 +63,21 @@ struct Atom {
             [&os](const auto &n) -> std::ostream& { return os << n; }
         }, atom.data);
     }
+
+    bool operator==(const Atom& other) const {
+        return std::visit(Visitor{
+            [](const Number& n1, const Number& n2) { return n1 == n2; },
+            [](bool b1, bool b2) { return b1 == b2; },
+            [](const std::string& s1, const std::string& s2) { return s1 == s2; },
+            [](const auto&, const auto&) { return false; }
+        }, data, other.data);
+    }
 };
 
-struct Datum {
-    // TODO: clean this up a lot
+// Any piece of data: can be an Atom or an SExpr
+class Datum {
     std::variant<Atom, std::shared_ptr<SExpr>> data;
-
+  public:
     template<typename T>
     std::optional<T> getAtomicValue() const {
         if (!std::holds_alternative<Atom>(data)) {
@@ -87,11 +98,11 @@ struct Datum {
         return std::get<Atom>(data);
     }
 
-    bool isAtomic() const {
+    bool isAtomic() const noexcept {
         return std::holds_alternative<Atom>(data);
     }
 
-    bool isNil() const {
+    bool isNil() const noexcept {
         return !isAtomic() && getSExpr() == nullptr;
     }
 
@@ -104,29 +115,38 @@ struct Datum {
         data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Datum &datum) {
+    friend std::ostream &operator<<(std::ostream& os, const Datum& datum) {
         return std::visit(Visitor {
             [&os](const Atom &atom) -> std::ostream& { return os << atom; },
-            [&os](const std::shared_ptr<SExpr> &) -> std::ostream& {
+            [&os](const std::shared_ptr<SExpr>&) -> std::ostream& {
                 return os << "<sexpr>";
             }
         }, datum.data);
     }
+
+    bool operator==(const Datum& other) const {
+        return std::visit(Visitor {
+            [](const Atom& a1, const Atom& a2) { return a1 == a2; },
+            [](const auto&, const auto&) { return false; }
+        }, data, other.data);
+    }
 };
 
+// An SExpr/cons cell/pair
+// TODO: this is implemented in such a way that makes parsing of SExprs easy,
+// but doesn't make implementing operators on cons cells as nice, particularly wrt
+// proper implementation of the standard Lisp garbage collection mechanism. This
+// shouldn't have much overhead over the current method of using a LinkedList anyway.
+// Furthermore, it's really confusing that you can construct an SExpr from a shared_ptr<SExpr>, and
+// this caused at least one bug
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
-    // TODO: make this a proper cons cell so that manipulations are
-    // more efficient
     std::list<Datum> cdr;
 
-    SExpr(Atom atom) {
-        car.data.emplace<Atom>(std::move(atom));
-    }
+    explicit SExpr(Atom atom) : car{std::move(atom)} {}
 
-    SExpr(std::shared_ptr<SExpr> ptr) {
-        car.data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
-    }
+    explicit SExpr(std::shared_ptr<SExpr> ptr) :
+        car{std::shared_ptr<SExpr>{std::move(ptr)}} {}
 };
 
 using BuiltInFunc = Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>);

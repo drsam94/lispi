@@ -33,9 +33,9 @@ class Evaluator {
     Evaluator();
 
     /// Main public interface: evaluates an expression in a given scope
-    static std::optional<Datum> eval(const SExpr &expr,
+    static std::optional<Datum> eval(const std::shared_ptr<SExpr> &expr,
                               std::shared_ptr<SymbolTable> scope);
-    std::optional<Datum> eval(const SExpr &expr) {
+    std::optional<Datum> eval(const std::shared_ptr<SExpr> &expr) {
         return eval(expr, globalScope);
     }
 };

@@ -15,22 +15,25 @@ else
 endif
 CFLAGS = -g --std=c++1z $(WARNINGS) $(STDLIB) -O$(OPT)
 OBJDIR = ../build
+BINDIR = ../bin
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o
 
-all: release test debug
+all: debug
 
-# When there is something of reasonable quality to "relase", we should turn optimizations
-# for the release
-#release: OPT = 0
+release: OPT = 3
 release: $(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
 debug: $(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o ../bin/lispi.debug $(STDLINK) -lreadline
-test: $(OBJS)
-	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o ../bin/test_runner $(STDLINK)
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi.debug $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
+sanitize: $(OBJS)
+	$(CC) $(CFLAGS) -fsanitize=address main.cc $(OBJDIR)/*.o \
+		-o $(BINDIR)/lispi.sanitize $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) -fsanitize=address test.cc $(OBJDIR)/*.o \
+		-o $(BINDIR)/test_runner.sanitize $(STDLINK)
 
 $(OBJDIR)/%.o : %.cc %.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm $(OBJDIR)/*.o
+	rm $(OBJDIR)/*.o $(BINDIR)/* || true

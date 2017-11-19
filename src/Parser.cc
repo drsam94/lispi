@@ -2,7 +2,8 @@
 #include "Parser.h"
 
 #include <math.h>
-std::optional<SExpr> Parser::parse(std::vector<Token> &tokens) {
+std::optional<std::shared_ptr<SExpr>>
+Parser::parse(std::vector<Token> &tokens) {
     if (tokens.empty() || !tokens.begin()->isOpenParen()) {
         return std::nullopt;
     }
@@ -45,38 +46,38 @@ Atom Parser::atomFromToken(Token token) {
 }
 
 template <typename Iterator>
-std::pair<std::optional<SExpr>, Iterator> Parser::parseImpl(Iterator first,
-                                                            Iterator last) {
+std::pair<std::optional<std::shared_ptr<SExpr>>, Iterator>
+Parser::parseImpl(Iterator first, Iterator last) {
     // Consume openParen
     auto curr = first;
     ++curr;
-    std::optional<SExpr> sexpr = std::nullopt;
+    std::optional<std::shared_ptr<SExpr>> sexpr = std::nullopt;
     while (curr != last) {
         if (curr->isCloseParen()) {
             return {sexpr, ++curr};
         } else if (curr->isOpenParen()) {
             auto[ret, next] = parseImpl(curr, last);
             if (!ret) {
-                return {std::nullopt, last};
+                return {std::nullopt, first};
             }
-            auto ptr = std::make_shared<SExpr>(std::move(*ret));
+            const std::shared_ptr<SExpr>& ptr = *ret;
             if (!sexpr) {
-                sexpr.emplace(std::move(ptr));
+                sexpr.emplace(std::make_shared<SExpr>(std::move(ptr)));
             } else {
-                sexpr->cdr.emplace_back(std::move(ptr));
+                (*sexpr)->cdr.emplace_back(std::move(ptr));
             }
             curr = next;
         } else if (curr->getType() != TokenType::Trivia) {
             Atom atom = atomFromToken(std::move(*curr));
             if (!sexpr) {
-                sexpr.emplace(std::move(atom));
+                sexpr.emplace(std::make_shared<SExpr>(std::move(atom)));
             } else {
-                sexpr->cdr.emplace_back(std::move(atom));
+                (*sexpr)->cdr.emplace_back(std::move(atom));
             }
             ++curr;
         } else {
             ++curr;
         }
     }
-    return {std::nullopt, last};
+    return {std::nullopt, first};
 }

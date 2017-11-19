@@ -2,11 +2,12 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Evaluator.h"
-#include "TestSuite.h"
+#include "util/TestSuite.h"
+
 #include <string>
 #include <string_view>
 #include <iostream>
-
+#include <vector>
 using namespace std;
 
 void runLexTest(string_view programText, std::vector<Token> expectedTokens) {
@@ -20,18 +21,27 @@ void runLexTest(string_view programText, std::vector<Token> expectedTokens) {
     }
 }
 
-void runEvalTest(string_view programText, Number result) {
+void runEvalTest(string_view programText, const Datum& result) {
     Lexer lex;
     Parser parser;
     Evaluator ev;
     auto tokens = lex.getTokens(programText);
     auto expr   = parser.parse(tokens);
-    if (!expr) {
-        TS_ASSERT(false);
-    } else {
-        TS_ASSERT_EQ(*ev.eval(*expr)->getAtomicValue<Number>(), result);
+    TS_ASSERT(bool(expr));
+    while (expr) {
+        optional<Datum> evaluated = ev.eval(*expr);
+        TS_ASSERT(bool(evaluated));
+        expr = parser.parse(tokens);
+        if (!expr) {
+            TS_ASSERT_EQ(*evaluated, result);
+        }
     }
 }
+
+void runEvalTest(string_view programTest, const Number& result) {
+    runEvalTest(programTest, Datum{Atom{result}});
+}
+
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
@@ -64,6 +74,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
     runEvalTest("(+ 3.4 4.5)"sv, 7.9);
     runEvalTest("(* 4 (+ 2 3))"sv, 20L);
-    // TODO test define (requires test with persistent Evaluator)
+
+    runEvalTest("(define (f x) (- x 3))\n"
+                "(f 75)", 72L);
     TS_SUMMARIZE();
 }

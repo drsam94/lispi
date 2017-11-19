@@ -34,7 +34,6 @@ int main(int argc, char **argv) {
     // disable tab completion
     rl_bind_key('\t', rl_insert);
 
-
     Lexer lex;
     Parser parser;
     Evaluator evaluator;
@@ -48,11 +47,11 @@ int main(int argc, char **argv) {
             inputLine = modInput;
         }
         auto expr = parser.parse(tokens);
-        if (!expr) {
-            continue;
+        while (expr) {
+            auto result = evaluator.eval(*expr);
+            cout << *result << endl;
+            expr = parser.parse(tokens);
         }
-        auto result = evaluator.eval(*expr);
-        cout << *result << endl;
     } while (true);
     return 0;
 }

@@ -15,12 +15,12 @@
 /// returns an SExpr, as that is the only fundamental structure in Lisp
 class Parser {
   public:
-    std::optional<SExpr> parse(std::vector<Token> &tokens);
+    std::optional<std::shared_ptr<SExpr>> parse(std::vector<Token> &tokens);
 
   private:
     static Atom atomFromToken(Token token);
 
     template<typename Iterator>
-    std::pair<std::optional<SExpr>, Iterator>
+    std::pair<std::optional<std::shared_ptr<SExpr>>, Iterator>
     static parseImpl(Iterator first, Iterator last);
  };
