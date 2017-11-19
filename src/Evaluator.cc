@@ -67,7 +67,7 @@ Evaluator::evalFunction(const LispFunction &func, const std::list<Datum> &args,
     }
     auto formalIt = func.formalParameters.begin();
     auto actualIt = args.begin();
-    auto funcScope = func.defnScope->makeChild();
+    auto funcScope = func.funcScope();
     for (; formalIt != func.formalParameters.end() && actualIt != args.end();
         ++formalIt, ++actualIt) {
         auto result = getOrEvaluate<Datum>(*actualIt, scope);
@@ -199,7 +199,7 @@ Datum Evaluator::builtinLambdaSF(const std::list<Datum> &inputs,
     std::shared_ptr<SExpr> impl = defn.isAtomic()
                                       ? std::make_shared<SExpr>(defn.getAtom())
                                       : defn.getSExpr();
-    return {Atom{LispFunction{std::move(formals), impl, st}}};
+    return {Atom{LispFunction{std::move(formals), impl, st, true}}};
 }
 
 Datum Evaluator::builtinDefineSF(const std::list<Datum> &inputs,
@@ -240,7 +240,7 @@ Datum Evaluator::builtinDefineSF(const std::list<Datum> &inputs,
     std::shared_ptr<SExpr> impl = defn.isAtomic()
                                     ? std::make_shared<SExpr>(defn.getAtom())
                                     : defn.getSExpr();
-    st->emplace(+*funName, Datum{Atom{LispFunction{std::move(formals), impl, st}}});
+    st->emplace(+*funName, Datum{Atom{LispFunction{std::move(formals), impl, st, false}}});
     return {};
 }
 

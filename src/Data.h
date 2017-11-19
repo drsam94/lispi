@@ -30,11 +30,30 @@ struct Symbol {
 
 // Type describing a function in lisp: a list of formal parameters together with
 // a definition
-struct LispFunction {
+class LispFunction {
+  public:
     std::vector<Symbol> formalParameters;
     std::shared_ptr<SExpr> definition;
-    std::shared_ptr<SymbolTable> defnScope;
+
+    LispFunction(std::vector<Symbol>&& formals, const std::shared_ptr<SExpr> defn,
+        const std::shared_ptr<SymbolTable> scope, bool isClosure) : formalParameters(std::move(formals)),
+        definition(defn) {
+            if (isClosure) {
+                defnScope.emplace<std::shared_ptr<SymbolTable>>(scope);
+            } else {
+                defnScope.emplace<SymbolTable*>(scope.get());
+            }
+        }
+    std::shared_ptr<SymbolTable> funcScope() const;
+  private:
+    // This should be a shared_ptr for lambdas (closures), but shouldn't
+    // be for normal functions (e.g) define: having this be a shared_ptr for
+    // functions that are (define)'d leads to a cycle, and the SymbolTables
+    // can't be garbage collected. Solution: functions should have a raw pointer
+    // to their enclosing scope, while closures have
+    std::variant<std::shared_ptr<SymbolTable>, SymbolTable*> defnScope;
 };
+
 
 // An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
 struct Atom {
@@ -147,7 +166,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     explicit SExpr(Atom atom) : car{std::move(atom)} {}
 
     explicit SExpr(std::shared_ptr<SExpr> ptr) :
-        car{std::shared_ptr<SExpr>{std::move(ptr)}} {}
+        car{std::move(ptr)} {}
 };
 
 using BuiltInFunc = Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>);

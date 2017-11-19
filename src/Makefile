@@ -16,7 +16,7 @@ endif
 CFLAGS = -g --std=c++1z $(WARNINGS) $(STDLIB) -O$(OPT)
 OBJDIR = ../build
 BINDIR = ../bin
-OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o
+OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o
 
 all: debug
 
