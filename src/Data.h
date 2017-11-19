@@ -2,18 +2,21 @@
 #pragma once
 
 #include "Number.h"
+#include "util/Util.h"
 
 #include <functional>
 #include <list>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <optional>
+#include <unordered_map>
 #include <variant>
 #include <vector>
-#include <unordered_map>
 
 struct SExpr;
+using SExprPtr = std::shared_ptr<SExpr>;
 class SymbolTable;
 
 // Class used for representing "symbols" -- the data is just a string, but we want a
@@ -33,9 +36,9 @@ struct Symbol {
 class LispFunction {
   public:
     std::vector<Symbol> formalParameters;
-    std::shared_ptr<SExpr> definition;
+    SExprPtr definition;
 
-    LispFunction(std::vector<Symbol>&& formals, const std::shared_ptr<SExpr> defn,
+    LispFunction(std::vector<Symbol>&& formals, const SExprPtr defn,
         const std::shared_ptr<SymbolTable> scope, bool isClosure);
 
     std::shared_ptr<SymbolTable> funcScope() const;
@@ -43,8 +46,9 @@ class LispFunction {
     // This should be a shared_ptr for lambdas (closures), but shouldn't
     // be for normal functions (e.g) define: having this be a shared_ptr for
     // functions that are (define)'d leads to a cycle, and the SymbolTables
-    // can't be garbage collected. Solution: functions should have a raw pointer
-    // to their enclosing scope, while closures have
+    // can't be garbage collected. Solution: functions should have a raw (non-owning)
+    // pointer to their enclosing scope, while closures have a shared_ptr, as the
+    // closure may need to otherwise outlast the scope
     std::variant<std::shared_ptr<SymbolTable>, SymbolTable*> defnScope;
 };
 
@@ -76,7 +80,7 @@ struct Atom {
 
 // Any piece of data: can be an Atom or an SExpr
 class Datum {
-    std::variant<Atom, std::shared_ptr<SExpr>> data;
+    std::variant<Atom, SExprPtr> data;
   public:
     template<typename T>
     std::optional<T> getAtomicValue() const {
@@ -90,8 +94,8 @@ class Datum {
         return atom.get<T>();
     }
 
-    const std::shared_ptr<SExpr>& getSExpr() const {
-        return std::get<std::shared_ptr<SExpr>>(data);
+    const SExprPtr& getSExpr() const {
+        return std::get<SExprPtr>(data);
     }
 
     const Atom& getAtom() const {
@@ -111,8 +115,8 @@ class Datum {
         data.emplace<Atom>(std::move(atom));
     }
 
-    Datum(std::shared_ptr<SExpr> ptr) {
-        data.emplace<std::shared_ptr<SExpr>>(std::move(ptr));
+    Datum(SExprPtr ptr) {
+        data.emplace<SExprPtr>(std::move(ptr));
     }
 
     friend std::ostream &operator<<(std::ostream& os, const Datum& datum);
@@ -121,24 +125,38 @@ class Datum {
 };
 
 // An SExpr/cons cell/pair
-// TODO: this is implemented in such a way that makes parsing of SExprs easy,
-// but doesn't make implementing operators on cons cells as nice, particularly wrt
-// proper implementation of the standard Lisp garbage collection mechanism. This
-// shouldn't have much overhead over the current method of using a LinkedList anyway.
-// Furthermore, it's really confusing that you can construct an SExpr from a shared_ptr<SExpr>, and
-// this caused at least one bug...and it lookd like there is also a leak from this. This is the next
-// top priority for cleaning up
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
-    std::list<Datum> cdr;
+    SExprPtr cdr;
 
     explicit SExpr(Atom atom) : car{std::move(atom)} {}
 
     explicit SExpr(std::shared_ptr<SExpr> ptr) :
         car{std::move(ptr)} {}
+
+    class iterator {
+        friend struct SExpr;
+        SExprPtr curr;
+
+        iterator(SExprPtr _curr) : curr(_curr) {}
+      public:
+        Datum& operator*() { return curr->car; }
+        Datum* operator->() { return &curr->car; }
+        iterator& operator++() { curr = curr->cdr; return *this; }
+
+        bool operator==(const iterator &other) const { return curr == other.curr; }
+        bool operator!=(const iterator &other) const { return !(*this == other); }
+    };
+
+    iterator begin() { return iterator(shared_from_this()); }
+    iterator end() { return iterator(nullptr); }
+    // TODO: don't depend on this too much as it is O(N)
+    size_t size() const {
+        return 1 + (cdr == nullptr ? 0 : cdr->size());
+    }
 };
 
-using BuiltInFunc = Datum(const std::list<Datum> &, std::shared_ptr<SymbolTable>);
+using BuiltInFunc = Datum(const SExprPtr&, std::shared_ptr<SymbolTable>);
 using SpecialForm = std::function<BuiltInFunc>;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
@@ -164,4 +182,17 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     std::shared_ptr<SymbolTable> makeChild() {
         return std::make_shared<SymbolTable>(shared_from_this());
     }
+};
+
+class LispError : public std::runtime_error {
+  public:
+    explicit LispError(const std::string& what_arg)
+        : std::runtime_error(what_arg) {}
+    explicit LispError(const char* what_arg) : std::runtime_error(what_arg) {}
+
+    // stringstream seems pretty slow, but error generation isn't exactly the
+    // sort of thing that needs to be fast
+    template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
+    LispError(Ts&&... args)
+        : LispError(stringConcat(std::forward<Ts>(args)...)) {}
 };

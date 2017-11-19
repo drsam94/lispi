@@ -1,5 +1,5 @@
-// (c) 2017 Sam Donow
 #include "Evaluator.h"
+// (c) 2017 Sam Donow
 #include "util/Util.h"
 
 Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
@@ -59,16 +59,16 @@ std::optional<Datum> Evaluator::getOrEvaluate(const Datum &datum,
 }
 
 std::optional<Datum>
-Evaluator::evalFunction(const LispFunction &func, const std::list<Datum> &args,
+Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
                         std::shared_ptr<SymbolTable> scope) {
     // TODO: some dialects of lisp support optional and variadic parameters...
-    if (func.formalParameters.size() != args.size()) {
+    if (func.formalParameters.size() != args->size()) {
         return std::nullopt;
     }
     auto formalIt = func.formalParameters.begin();
-    auto actualIt = args.begin();
+    auto actualIt = args->begin();
     auto funcScope = func.funcScope();
-    for (; formalIt != func.formalParameters.end() && actualIt != args.end();
+    for (; formalIt != func.formalParameters.end() && actualIt != args->end();
         ++formalIt, ++actualIt) {
         auto result = getOrEvaluate<Datum>(*actualIt, scope);
         if (!result) {
@@ -76,7 +76,7 @@ Evaluator::evalFunction(const LispFunction &func, const std::list<Datum> &args,
         }
         funcScope->emplace(+*formalIt, *result);
     }
-    if (func.definition->cdr.empty()) {
+    if (func.definition->cdr == nullptr) {
         // Workaround to support things like lambda (x) x...this is probably not
         // fully compliant with the spec
         auto sym = func.definition->car.getAtomicValue<Symbol>();
@@ -123,120 +123,113 @@ Evaluator::eval(const std::shared_ptr<SExpr> &expr,
     }
 }
 
-Datum Evaluator::builtinAdd(const std::list<Datum> &inputs,
+Datum Evaluator::builtinAdd(const SExprPtr& inputs,
                             std::shared_ptr<SymbolTable> st) {
     Number sum{};
-    for (const Datum &datum : inputs) {
+    for (const Datum &datum : *inputs) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             sum += *val;
         } else {
-            throw "TODO: a structured runtime error";
+            throw LispError("TypeError: ", datum, " is not a number");
         }
     }
     return {Atom{sum}};
 }
 
-Datum Evaluator::builtinSub(const std::list<Datum> &inputs,
+Datum Evaluator::builtinSub(const SExprPtr& inputs,
                             std::shared_ptr<SymbolTable> st) {
     Number diff{};
-    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+    for (auto it = inputs->begin(); it != inputs->end(); ++it) {
         if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
-            if (it == inputs.begin() && inputs.size() > 1) {
+            if (it == inputs->begin() && inputs->size() > 1) {
                 diff = *val;
             } else {
                 diff -= *val;
             }
         } else {
-            throw "TODO: a structured runtime error";
+            throw LispError("TypeError: ", *it, " is not a number");
         }
     }
     return {Atom{diff}};
 }
 
-Datum Evaluator::builtinMul(const std::list<Datum> &inputs,
+Datum Evaluator::builtinMul(const SExprPtr& inputs,
                             std::shared_ptr<SymbolTable> st) {
     Number prod{1L};
-    for (const Datum &datum : inputs) {
+    for (const Datum &datum : *inputs) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             prod *= *val;
         } else {
-            throw "TODO: a structured runtime error";
+            throw LispError("TypeError: ", datum, " is not a number");
         }
     }
     return {Atom{prod}};
 }
 
-Datum Evaluator::builtinLambdaSF(const std::list<Datum> &inputs,
+Datum Evaluator::builtinLambdaSF(const SExprPtr& inputs,
                       std::shared_ptr<SymbolTable> st) {
     std::vector<Symbol> formals;
-    if (inputs.size() != 2) {
-        throw "TODO: a structured runtime error";
+    if (inputs->size() != 2) {
+        throw LispError("Lambda must have param list and body");
     }
 
-    auto inputIt = inputs.begin();
+    auto inputIt = inputs->begin();
     if (inputIt->isAtomic()) {
-        throw "TODO: a structured runtime error";
+        throw LispError("Lambda parameter list must be a list");
     }
-    const auto &expr = inputIt->getSExpr();
-    // TODO: allow easier flat iteration over an sexpr
-    auto param = expr->car.getAtomicValue<Symbol>();
-    if (!param) {
-        throw "TODO: a structured runtime error";
-    } else {
-        formals.emplace_back(std::move(*param));
-    }
-    for (const Datum &datum : expr->cdr) {
-        auto nextParam = datum.getAtomicValue<Symbol>();
-        if (!nextParam) {
-            throw "TODO: a structured runtime error";
+    const SExprPtr &expr = inputIt->getSExpr();
+    for (const Datum &datum : *expr) {
+        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
+        if (!param) {
+            throw LispError("Formal parameter ", expr->car, " is not an identifier");
         } else {
-            formals.emplace_back(std::move(*nextParam));
+            formals.emplace_back(std::move(*param));
         }
     }
 
     ++inputIt;
-    const auto &defn = *inputIt;
+    const Datum &defn = *inputIt;
     std::shared_ptr<SExpr> impl = defn.isAtomic()
                                       ? std::make_shared<SExpr>(defn.getAtom())
                                       : defn.getSExpr();
     return {Atom{LispFunction{std::move(formals), impl, st, true}}};
 }
 
-Datum Evaluator::builtinDefineSF(const std::list<Datum> &inputs,
+Datum Evaluator::builtinDefineSF(const SExprPtr& inputs,
                         std::shared_ptr<SymbolTable> st) {
-    if (inputs.size() != 2) {
-        throw "TODO: a structured runtime error";
+    if (inputs->size() != 2) {
+        throw LispError("Function definition requires declarator and body");
     }
-    auto inputIt = inputs.begin();
+    auto inputIt = inputs->begin();
     if (inputIt->isAtomic()) {
         // We are defining a constant
         std::optional<Symbol> varName = inputIt->getAtomicValue<Symbol>();
         if (!varName) {
-            throw "TODO";
+            throw LispError("Name ", *inputIt, " is not an identifier");
         }
         ++inputIt;
         std::optional<Datum> value = eval(inputIt->getSExpr(), st);
         if (!value) {
-            throw "TODO";
+            throw LispError("Invalid variable definition ", *inputIt);
         }
         st->emplace(+*varName, *value);
         return {};
     }
-    const auto &declarator = inputIt->getSExpr();
-    auto funName = declarator->car.getAtomicValue<Symbol>();
+    const SExprPtr &declarator = inputIt->getSExpr();
+    std::optional<Symbol> funName = declarator->car.getAtomicValue<Symbol>();
     if (!funName) {
-        throw "TODO";
+        throw LispError("Name ", declarator->car, " is not an identifier");
     }
     std::vector<Symbol> formals;
-    for (const Datum &datum : declarator->cdr) {
-        auto param = datum.getAtomicValue<Symbol>();
+    for (const Datum &datum : *declarator->cdr) {
+        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
         if (!param) {
-            throw "TODO";
+            throw LispError("Name ", datum, " is not an identifier");
         }
         formals.emplace_back(std::move(*param));
     }
     ++inputIt;
-    const auto &defn = *inputIt;
+    const Datum &defn = *inputIt;
     std::shared_ptr<SExpr> impl = defn.isAtomic()
                                     ? std::make_shared<SExpr>(defn.getAtom())
                                     : defn.getSExpr();
@@ -244,15 +237,15 @@ Datum Evaluator::builtinDefineSF(const std::list<Datum> &inputs,
     return {};
 }
 
-Datum Evaluator::builtinIfSF(const std::list<Datum> &inputs,
+Datum Evaluator::builtinIfSF(const SExprPtr& inputs,
                              std::shared_ptr<SymbolTable> st) {
-    if (inputs.size() != 3) {
-        throw "TODO: a structured runtime error";
+    if (inputs->size() != 3) {
+        throw LispError("if takes 3 arguments, found ", inputs->size());
     }
-    auto inputIt = inputs.begin();
-    auto cond = getOrEvaluate<Datum>(*inputIt, st);
+    auto inputIt = inputs->begin();
+    std::optional<Datum> cond = getOrEvaluate<Datum>(*inputIt, st);
     if (!cond) {
-        throw "TODO: a structured runtime error";
+        throw LispError("Error evaluating condition ", *inputIt);
     }
     if (cond->isNil()) {
         ++inputIt;
@@ -263,6 +256,6 @@ Datum Evaluator::builtinIfSF(const std::list<Datum> &inputs,
     if (auto ret = Evaluator::getOrEvaluate<Datum>(*inputIt, st); bool(ret)) {
         return *ret;
     } else {
-        throw "TODO: a structured runtime error";
+        throw LispError("Error evaluating expression, ", *inputIt);
     }
 }

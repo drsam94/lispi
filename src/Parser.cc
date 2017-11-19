@@ -49,9 +49,11 @@ template <typename Iterator>
 std::pair<std::optional<std::shared_ptr<SExpr>>, Iterator>
 Parser::parseImpl(Iterator first, Iterator last) {
     // Consume openParen
-    auto curr = first;
+    Iterator curr = first;
     ++curr;
-    std::optional<std::shared_ptr<SExpr>> sexpr = std::nullopt;
+
+    SExprPtr sexpr = nullptr;
+    SExpr* currSexpr = nullptr;
     while (curr != last) {
         if (curr->isCloseParen()) {
             return {sexpr, ++curr};
@@ -62,17 +64,21 @@ Parser::parseImpl(Iterator first, Iterator last) {
             }
             const std::shared_ptr<SExpr>& ptr = *ret;
             if (!sexpr) {
-                sexpr.emplace(std::make_shared<SExpr>(ptr));
+                sexpr = std::make_shared<SExpr>(ptr);
+                currSexpr = sexpr.get();
             } else {
-                (*sexpr)->cdr.emplace_back(ptr);
+                currSexpr->cdr = std::make_shared<SExpr>(ptr);
+                currSexpr = currSexpr->cdr.get();
             }
             curr = next;
         } else if (curr->getType() != TokenType::Trivia) {
             Atom atom = atomFromToken(std::move(*curr));
             if (!sexpr) {
-                sexpr.emplace(std::make_shared<SExpr>(std::move(atom)));
+                sexpr = std::make_shared<SExpr>(std::move(atom));
+                currSexpr = sexpr.get();
             } else {
-                (*sexpr)->cdr.emplace_back(std::move(atom));
+                currSexpr->cdr = std::make_shared<SExpr>(std::move(atom));
+                currSexpr = currSexpr->cdr.get();
             }
             ++curr;
         } else {

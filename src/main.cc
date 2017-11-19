@@ -25,32 +25,32 @@ string_view getline() {
     return line;
 }
 
-int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
-
+int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     // readline init
     //
     // disable tab completion
     rl_bind_key('\t', rl_insert);
-
     Lexer lex;
     Parser parser;
     Evaluator evaluator;
     string bufferedInput;
     vector<Token> tokens;
-    do  {
-        string_view inputLine = getline();
-        while (!inputLine.empty()) {
-            auto &&[token, modInput] = lex.next(inputLine);
-            tokens.emplace_back(move(token));
-            inputLine = modInput;
-        }
-        auto expr = parser.parse(tokens);
-        while (expr) {
-            auto result = evaluator.eval(*expr);
-            cout << *result << endl;
-            expr = parser.parse(tokens);
+    do {
+        try {
+            string_view inputLine = getline();
+            while (!inputLine.empty()) {
+                auto && [ token, modInput ] = lex.next(inputLine);
+                tokens.emplace_back(move(token));
+                inputLine = modInput;
+            }
+            auto expr = parser.parse(tokens);
+            while (expr) {
+                auto result = evaluator.eval(*expr);
+                cout << *result << endl;
+                expr = parser.parse(tokens);
+            }
+        } catch (const LispError& err) {
+            cout << "error: " << err.what() << endl;
         }
     } while (true);
     return 0;

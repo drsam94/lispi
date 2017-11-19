@@ -1,7 +1,8 @@
 // (c) Sam Donow 2017
 #pragma once
-#include<string>
-// Random utilities that I may or may not need in this project
+#include <string>
+#include <sstream>
+// Random utilities that don't have logical places to go
 
 // RAII file class
 class FileOpen {
@@ -27,3 +28,12 @@ namespace std {
 template<class... Ts>
 struct Visitor : Ts... { using Ts::operator()...; };
 template<class... Ts> Visitor(Ts...) -> Visitor<Ts...>;
+
+// Note: this is probably really slow (when compared to optimized solutions like
+// absl::strcat), but it isn't used in very performance sensitive places.
+template<typename... Ts>
+std::string stringConcat(Ts&&... args) {
+    std::stringstream ss;
+    (ss << ... << args);
+    return ss.str();
+}

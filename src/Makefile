@@ -13,23 +13,28 @@ else
 	STDLIB=
 	STDLINK=
 endif
-CFLAGS = -g --std=c++1z $(WARNINGS) $(STDLIB) -O$(OPT)
+CFLAGS = -g --std=c++1z $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build
 BINDIR = ../bin
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o
 
 all: debug
 
+# TODO: generate different objects (different build dirs) fr the different variants
+# so that a make clean isn't always necessary before building a new variant
 release: OPT = 3
 release: $(OBJS)
 	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
 debug: $(OBJS)
 	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi.debug $(STDLINK) -lreadline
 	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
+
+# Note: there are some sanitizatio errors when running the REPL that come from GNU readline
+sanitize: SANITIZE = -fsanitize=address -fsanitize=leak -fsanitize=undefined -fstack-check
 sanitize: $(OBJS)
-	$(CC) $(CFLAGS) -fsanitize=address main.cc $(OBJDIR)/*.o \
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o \
 		-o $(BINDIR)/lispi.sanitize $(STDLINK) -lreadline
-	$(CC) $(CFLAGS) -fsanitize=address test.cc $(OBJDIR)/*.o \
+	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o \
 		-o $(BINDIR)/test_runner.sanitize $(STDLINK)
 
 $(OBJDIR)/%.o : %.cc %.h

@@ -16,7 +16,7 @@ class Evaluator {
 
     /// Evaluate a lisp function on the given args
     static std::optional<Datum> evalFunction(const LispFunction &func,
-                                      const std::list<Datum> &args,
+                                      const SExprPtr& args,
                                       std::shared_ptr<SymbolTable> st);
 
     /// defintions of builtins/special forms
@@ -33,9 +33,9 @@ class Evaluator {
     Evaluator();
 
     /// Main public interface: evaluates an expression in a given scope
-    static std::optional<Datum> eval(const std::shared_ptr<SExpr> &expr,
+    static std::optional<Datum> eval(const SExprPtr& expr,
                               std::shared_ptr<SymbolTable> scope);
-    std::optional<Datum> eval(const std::shared_ptr<SExpr> &expr) {
+    std::optional<Datum> eval(const SExprPtr& expr) {
         return eval(expr, globalScope);
     }
 };

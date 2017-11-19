@@ -13,8 +13,8 @@ LispFunction::LispFunction(std::vector<Symbol> &&formals,
 }
 
 std::shared_ptr<SymbolTable> LispFunction::funcScope() const {
-    if (std::holds_alternative<SymbolTable *>(defnScope)) {
-        return std::get<SymbolTable *>(defnScope)->makeChild();
+    if (std::holds_alternative<SymbolTable*>(defnScope)) {
+        return std::get<SymbolTable*>(defnScope)->makeChild();
     } else {
         return std::get<std::shared_ptr<SymbolTable>>(defnScope)->makeChild();
     }
@@ -56,8 +56,8 @@ bool Datum::operator==(const Datum& other) const {
 std::variant<Datum, SpecialForm>& SymbolTable::
 operator[](const std::string& s) {
     if (auto it = table.find(s); it == table.end()) {
-        if (parent == nullptr) {
-            throw "A runtime error which should be handled in some way";
+        if (unlikely(parent == nullptr)) {
+            throw LispError("Undefined Symbol: ", s);
         } else {
             return (*parent)[s];
         }
