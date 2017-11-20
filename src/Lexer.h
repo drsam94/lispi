@@ -20,10 +20,10 @@ class Lexer {
         // TODO: support exponential forms, etc
         return (c >= '0' && c <= '9') || c == '.';
     }
-    static bool isQuote(char c) { return c == '"'; }
+    static bool isDoubleQuote(char c) { return c == '"'; }
 
     static bool isSymbolic(char c) {
-        return !isParen(c) && !isSpace(c) && !isNumeric(c) && !isQuote(c);
+        return !isParen(c) && !isSpace(c) && !isNumeric(c) && !isDoubleQuote(c);
     }
 
     std::pair<Token, std::string_view>

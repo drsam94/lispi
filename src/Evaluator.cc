@@ -12,10 +12,16 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     globalScope->emplace("if", &Evaluator::builtinIfSF);
     globalScope->emplace("define", &Evaluator::builtinDefineSF);
     globalScope->emplace("nil", Datum{nullptr});
+    globalScope->emplace("#t", Datum{Atom{true}});
+    globalScope->emplace("#f", Datum{Atom{false}});
+    globalScope->emplace("quote", &Evaluator::builtinQuoteSF);
+    globalScope->emplace("car", &Evaluator::builtinCarSF);
+    globalScope->emplace("cdr", &Evaluator::builtinCdrSF);
+    globalScope->emplace("eq?", &Evaluator::builtinEqSF);
 }
 
 template <typename T>
-std::optional<T> Evaluator::getOrEvaluate(const Datum &datum,
+std::optional<T> Evaluator::getOrEvaluate(const Datum& datum,
                                           std::shared_ptr<SymbolTable> st) {
     if (datum.isAtomic()) {
         const Atom &val = datum.getAtom();
@@ -28,7 +34,7 @@ std::optional<T> Evaluator::getOrEvaluate(const Datum &datum,
         }
         return val.get<T>();
     } else {
-        const auto &expr = datum.getSExpr();
+        const auto& expr = datum.getSExpr();
         const std::optional<Datum> result = Evaluator::eval(expr, st);
         if (!result)
             return std::nullopt;
@@ -259,3 +265,43 @@ Datum Evaluator::builtinIfSF(const SExprPtr& inputs,
         throw LispError("Error evaluating expression, ", *inputIt);
     }
 }
+
+Datum Evaluator::builtinQuoteSF(const SExprPtr& inputs, std::shared_ptr<SymbolTable>) {
+    if (inputs->size() != 1) {
+        throw LispError("quote requires exactly one argument");
+    }
+    return Datum{inputs->car.getSExpr()};
+}
+
+Datum Evaluator::builtinCarSF(const SExprPtr& inputs, std::shared_ptr<SymbolTable> st) {
+    std::optional<Datum> arg = Evaluator::getOrEvaluate<Datum>(inputs->car, st);
+    if (!arg || arg->isAtomic()) {
+        throw LispError("car requires a cons cell");
+    }
+    return arg->getSExpr()->car;
+}
+
+Datum Evaluator::builtinCdrSF(const SExprPtr& inputs, std::shared_ptr<SymbolTable> st) {
+    std::optional<Datum> arg = Evaluator::getOrEvaluate<Datum>(inputs->car, st);
+    if (!arg || arg->isAtomic()) {
+        throw LispError("cdr requires a cons cell");
+    }
+    return Datum{arg->getSExpr()->cdr};
+}
+
+Datum Evaluator::builtinEqSF(const SExprPtr& inputs, std::shared_ptr<SymbolTable> st) {
+    if (inputs->size() != 2) {
+        throw LispError("Function expects 2 arguments, received ", inputs->size());
+    }
+
+    auto it = inputs->begin();
+    std::optional<Datum> first = Evaluator::getOrEvaluate<Datum>(*it, st);
+    ++it;
+    std::optional<Datum> second = Evaluator::getOrEvaluate<Datum>(*it, st);
+    if (!first || !second) {
+        throw LispError("Error evaluating arguments to eq");
+    }
+
+    return Datum{Atom{*first == *second}};
+}
+

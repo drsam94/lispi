@@ -54,10 +54,10 @@ class LispFunction {
 
 
 // An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
-struct Atom {
+class Atom {
     std::variant<std::monostate, Number, bool,
                  std::string, Symbol, LispFunction> data;
-
+  public:
     Atom() = default;
     template <typename T, typename = std::enable_if_t<
                               !std::is_same_v<Atom, std::remove_reference<T>>>>
@@ -138,7 +138,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
         friend struct SExpr;
         SExprPtr curr;
 
-        iterator(SExprPtr _curr) : curr(_curr) {}
+        iterator(SExprPtr _curr) : curr{_curr} {}
       public:
         Datum& operator*() { return curr->car; }
         Datum* operator->() { return &curr->car; }
@@ -167,32 +167,32 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   public:
     explicit SymbolTable(std::shared_ptr<SymbolTable> p)
         : parent(std::move(p)) {}
-    std::variant<Datum, SpecialForm> &operator[](const std::string &s);
+    std::variant<Datum, SpecialForm>& operator[](const std::string& s);
 
-    std::variant<Datum, SpecialForm> &emplace(const std::string &s,
-                                              const Datum &datum) {
+    std::variant<Datum, SpecialForm>& emplace(const std::string& s,
+                                              const Datum& datum) {
         return table.emplace(s, datum).first->second;
     }
 
-    std::variant<Datum, SpecialForm> &emplace(const std::string &s,
+    std::variant<Datum, SpecialForm>& emplace(const std::string& s,
                                               SpecialForm form) {
         return table.emplace(s, form).first->second;
     }
 
     std::shared_ptr<SymbolTable> makeChild() {
-        return std::make_shared<SymbolTable>(shared_from_this());
+        return shared_from_this();
     }
 };
 
 class LispError : public std::runtime_error {
   public:
     explicit LispError(const std::string& what_arg)
-        : std::runtime_error(what_arg) {}
-    explicit LispError(const char* what_arg) : std::runtime_error(what_arg) {}
+        : std::runtime_error{what_arg} {}
+    explicit LispError(const char* what_arg) : std::runtime_error{what_arg} {}
 
     // stringstream seems pretty slow, but error generation isn't exactly the
     // sort of thing that needs to be fast
     template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
     LispError(Ts&&... args)
-        : LispError(stringConcat(std::forward<Ts>(args)...)) {}
+        : LispError{stringConcat(std::forward<Ts>(args)...)} {}
 };

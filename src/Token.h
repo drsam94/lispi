@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-ENUM(TokenType, uint8_t, Paren, String, Symbol, Number, Trivia, Error)
+ENUM(TokenType, uint8_t, Paren, String, Symbol, Number, Trivia, Quote, Error)
 
 class Token {
     TokenType type{TokenType::Error};

@@ -24,6 +24,7 @@ std::ostream& operator<<(std::ostream& os, const Atom& atom) {
     return std::visit(Visitor {
         [&os](const std::monostate&) -> std::ostream& { return os << "<none>"; },
         [&os](const LispFunction&) -> std::ostream& { return os << "<func>"; },
+        [&os](bool b) -> std::ostream& { return os << (b ? "#t" : "#f"); },
         [&os](const auto &n) -> std::ostream& { return os << n; }
     }, atom.data);
 }

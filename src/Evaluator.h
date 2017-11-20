@@ -27,6 +27,10 @@ class Evaluator {
     static BuiltInFunc builtinLambdaSF;
     static BuiltInFunc builtinIfSF;
     static BuiltInFunc builtinDefineSF;
+    static BuiltInFunc builtinQuoteSF;
+    static BuiltInFunc builtinCarSF;
+    static BuiltInFunc builtinCdrSF;
+    static BuiltInFunc builtinEqSF;
   public:
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions

@@ -36,5 +36,4 @@
 
 #bin dir
 bin/*
-.vscode/*
-.vscode
+build/*

@@ -13,36 +13,32 @@ Parser::parse(std::vector<Token> &tokens) {
 }
 
 Atom Parser::atomFromToken(Token token) {
-    Atom atom;
     switch (token.getType()) {
     case TokenType::Symbol: {
-        atom.data = Symbol{std::string{token.getText()}};
-        break;
+        return Atom{Symbol{std::string{token.getText()}}};
     }
     case TokenType::String: {
         // TODO: handle this properly with quotes and escape sequences and stuff
-        atom.data.emplace<std::string>(token.getText());
-        break;
+        return Atom{std::string{token.getText()}};
     }
     case TokenType::Number: {
         // TODO handle this properly for more general inputs
         double d;
         sscanf(token.getText().data(), "%lf", &d);
         if (fmod(d, 1.0) != 0.0) {
-            atom.data.emplace<Number>(d);
-        } else {
-            atom.data.emplace<Number>(static_cast<long>(d));
+            return Atom{Number{d}};
         }
-        break;
+        return Atom{Number{static_cast<long>(d)}};
     }
 
     case TokenType::Paren:
     case TokenType::Trivia:
     case TokenType::Error:
     case TokenType::Unset:
+    case TokenType::Quote:
         break;
     }
-    return atom;
+    return Atom{};
 }
 
 template <typename Iterator>
@@ -57,13 +53,31 @@ Parser::parseImpl(Iterator first, Iterator last) {
     while (curr != last) {
         if (curr->isCloseParen()) {
             return {sexpr, ++curr};
+        } else if (curr->getType() == TokenType::Quote) {
+            // The Quote character is really just syntactic sugar for the
+            // special form quote
+            SExprPtr newSexpr = std::make_shared<SExpr>(Atom{Symbol{"quote"}});
+            if (sexpr == nullptr) {
+                sexpr = newSexpr;
+                currSexpr = sexpr->car.getSExpr().get();
+            } else {
+                currSexpr->cdr = std::make_shared<SExpr>(newSexpr);
+                currSexpr = currSexpr->cdr->car.getSExpr().get();
+            }
+            auto[cdr, next] = parseImpl(++curr, last);
+            if (!cdr) {
+                return {std::nullopt, first};
+            }
+            currSexpr->cdr = std::make_shared<SExpr>(std::move(*cdr));
+            currSexpr = currSexpr->cdr.get();
+            curr = next;
         } else if (curr->isOpenParen()) {
             auto[ret, next] = parseImpl(curr, last);
             if (!ret) {
                 return {std::nullopt, first};
             }
             const std::shared_ptr<SExpr>& ptr = *ret;
-            if (!sexpr) {
+            if (sexpr == nullptr) {
                 sexpr = std::make_shared<SExpr>(ptr);
                 currSexpr = sexpr.get();
             } else {

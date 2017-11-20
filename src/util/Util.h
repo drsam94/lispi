@@ -23,7 +23,6 @@ namespace std {
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-
 // A helper for conveniently using std::visit in a pattern-matching like way
 template<class... Ts>
 struct Visitor : Ts... { using Ts::operator()...; };

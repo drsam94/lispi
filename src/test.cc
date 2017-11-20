@@ -67,6 +67,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("((lambda (x) x) 4)"sv, 4L);
     runEvalTest("((lambda (x) (+ x x)) 4)"sv, 8L);
     runEvalTest("((lambda (x y) (+ x y)) 4 5)"sv, 9L);
+    // TODO: track down memory leak in this test
     runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15L);
 
     runEvalTest("(if nil 4 5)"sv, 5L);
@@ -77,5 +78,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
     runEvalTest("(define (f x) (- x 3))\n"
                 "(f 75)", 72L);
+    runEvalTest("(car (quote (1 2)))", 1L);
+    runEvalTest("(car '(1 2))", 1L);
+    runEvalTest("(car (cdr '(1 2 3)))", 2L);
+    runEvalTest("(if (eq? (+ 3 4) 7) 5 4)", 5L);
     TS_SUMMARIZE();
 }
