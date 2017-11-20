@@ -2,7 +2,7 @@
 
 LispFunction::LispFunction(std::vector<Symbol> &&formals,
                            const std::shared_ptr<SExpr> defn,
-                           const std::shared_ptr<SymbolTable> scope,
+                           const std::shared_ptr<SymbolTable>& scope,
                            bool isClosure)
     : formalParameters(std::move(formals)), definition(defn) {
     if (isClosure) {

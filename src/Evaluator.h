@@ -12,12 +12,12 @@ class Evaluator {
     /// return nullopt if there is a failure at any point
     template <typename T>
     static std::optional<T> getOrEvaluate(const Datum &datum,
-                                   std::shared_ptr<SymbolTable> st);
+                                   const std::shared_ptr<SymbolTable>& st);
 
     /// Evaluate a lisp function on the given args
     static std::optional<Datum> evalFunction(const LispFunction &func,
                                       const SExprPtr& args,
-                                      std::shared_ptr<SymbolTable> st);
+                                      const std::shared_ptr<SymbolTable>& st);
 
     /// defintions of builtins/special forms
     static BuiltInFunc builtinAdd;
@@ -38,7 +38,7 @@ class Evaluator {
 
     /// Main public interface: evaluates an expression in a given scope
     static std::optional<Datum> eval(const SExprPtr& expr,
-                              std::shared_ptr<SymbolTable> scope);
+                              const std::shared_ptr<SymbolTable>& scope);
     std::optional<Datum> eval(const SExprPtr& expr) {
         return eval(expr, globalScope);
     }

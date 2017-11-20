@@ -39,7 +39,7 @@ class LispFunction {
     SExprPtr definition;
 
     LispFunction(std::vector<Symbol>&& formals, const SExprPtr defn,
-        const std::shared_ptr<SymbolTable> scope, bool isClosure);
+        const std::shared_ptr<SymbolTable>& scope, bool isClosure);
 
     std::shared_ptr<SymbolTable> funcScope() const;
   private:
@@ -156,7 +156,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     }
 };
 
-using BuiltInFunc = Datum(const SExprPtr&, std::shared_ptr<SymbolTable>);
+using BuiltInFunc = Datum(const SExprPtr&, const std::shared_ptr<SymbolTable>&);
 using SpecialForm = std::function<BuiltInFunc>;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
@@ -165,8 +165,8 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     std::shared_ptr<SymbolTable> parent;
 
   public:
-    explicit SymbolTable(std::shared_ptr<SymbolTable> p)
-        : parent(std::move(p)) {}
+    explicit SymbolTable(const std::shared_ptr<SymbolTable>& p)
+        : parent{p} {}
     std::variant<Datum, SpecialForm>& operator[](const std::string& s);
 
     std::variant<Datum, SpecialForm>& emplace(const std::string& s,
@@ -180,7 +180,7 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     }
 
     std::shared_ptr<SymbolTable> makeChild() {
-        return shared_from_this();
+        return std::make_shared<SymbolTable>(shared_from_this());
     }
 };
 
