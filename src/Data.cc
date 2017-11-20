@@ -38,20 +38,28 @@ bool Atom::operator==(const Atom& other) const {
     }, data, other.data);
 }
 
-std::ostream &operator<<(std::ostream& os, const Datum& datum) {
-    return std::visit(Visitor {
-        [&os](const Atom &atom) -> std::ostream& { return os << atom; },
-        [&os](const std::shared_ptr<SExpr>&) -> std::ostream& {
-            return os << "<sexpr>";
-        }
-    }, datum.data);
+std::ostream& operator<<(std::ostream& os, const Datum& datum) {
+    return std::visit(
+        Visitor{[&os](const Atom& atom) -> std::ostream& { return os << atom; },
+                [&os](const SExprPtr& sexpr) -> std::ostream& {
+                    return os << *sexpr;
+                }},
+        datum.data);
+}
+
+std::ostream& operator<<(std::ostream& os, const SExpr& expr) {
+    os << "'(";
+    for (const Datum& datum : expr) {
+        os << datum << " ";
+    }
+    return os << ")";
 }
 
 bool Datum::operator==(const Datum& other) const {
-    return std::visit(Visitor {
-        [](const Atom& a1, const Atom& a2) { return a1 == a2; },
-        [](const auto&, const auto&) { return false; }
-    }, data, other.data);
+    return std::visit(
+        Visitor{[](const Atom& a1, const Atom& a2) { return a1 == a2; },
+                [](const auto&, const auto&) { return false; }},
+        data, other.data);
 }
 
 std::variant<Datum, SpecialForm>& SymbolTable::

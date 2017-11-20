@@ -11,7 +11,6 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     globalScope->emplace("lambda", &Evaluator::builtinLambdaSF);
     globalScope->emplace("if", &Evaluator::builtinIfSF);
     globalScope->emplace("define", &Evaluator::builtinDefineSF);
-    globalScope->emplace("nil", Datum{nullptr});
     globalScope->emplace("#t", Datum{Atom{true}});
     globalScope->emplace("#f", Datum{Atom{false}});
     globalScope->emplace("quote", &Evaluator::builtinQuoteSF);
@@ -162,7 +161,7 @@ Datum Evaluator::builtinSub(const SExprPtr& inputs,
 Datum Evaluator::builtinMul(const SExprPtr& inputs,
                             const std::shared_ptr<SymbolTable>& st) {
     Number prod{1L};
-    for (const Datum &datum : *inputs) {
+    for (const Datum& datum : *inputs) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             prod *= *val;
         } else {
@@ -183,11 +182,12 @@ Datum Evaluator::builtinLambdaSF(const SExprPtr& inputs,
     if (inputIt->isAtomic()) {
         throw LispError("Lambda parameter list must be a list");
     }
-    const SExprPtr &expr = inputIt->getSExpr();
-    for (const Datum &datum : *expr) {
+    const SExprPtr& expr = inputIt->getSExpr();
+    for (const Datum& datum : *expr) {
         std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
         if (!param) {
-            throw LispError("Formal parameter ", expr->car, " is not an identifier");
+            throw LispError("Formal parameter ", expr->car,
+                            " is not an identifier");
         } else {
             formals.emplace_back(std::move(*param));
         }
@@ -235,11 +235,12 @@ Datum Evaluator::builtinDefineSF(const SExprPtr& inputs,
         formals.emplace_back(std::move(*param));
     }
     ++inputIt;
-    const Datum &defn = *inputIt;
+    const Datum& defn = *inputIt;
     std::shared_ptr<SExpr> impl = defn.isAtomic()
-                                    ? std::make_shared<SExpr>(defn.getAtom())
-                                    : defn.getSExpr();
-    st->emplace(+*funName, Datum{Atom{LispFunction{std::move(formals), impl, st, false}}});
+                                      ? std::make_shared<SExpr>(defn.getAtom())
+                                      : defn.getSExpr();
+    st->emplace(+*funName,
+                Datum{Atom{LispFunction{std::move(formals), impl, st, false}}});
     return {};
 }
 
@@ -253,10 +254,8 @@ Datum Evaluator::builtinIfSF(const SExprPtr& inputs,
     if (!cond) {
         throw LispError("Error evaluating condition ", *inputIt);
     }
-    if (cond->isNil()) {
-        ++inputIt;
-        ++inputIt;
-    } else {
+    ++inputIt;
+    if (!cond->isTrue()) {
         ++inputIt;
     }
     if (auto ret = Evaluator::getOrEvaluate<Datum>(*inputIt, st); bool(ret)) {
@@ -266,7 +265,8 @@ Datum Evaluator::builtinIfSF(const SExprPtr& inputs,
     }
 }
 
-Datum Evaluator::builtinQuoteSF(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>&) {
+Datum Evaluator::builtinQuoteSF(const SExprPtr& inputs,
+                                const std::shared_ptr<SymbolTable>&) {
     if (inputs->size() != 1) {
         throw LispError("quote requires exactly one argument");
     }

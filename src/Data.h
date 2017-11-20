@@ -106,8 +106,15 @@ class Datum {
         return std::holds_alternative<Atom>(data);
     }
 
-    bool isNil() const noexcept {
-        return !isAtomic() && getSExpr() == nullptr;
+    bool isTrue() const noexcept {
+        if (!isAtomic()) {
+            return true;
+        }
+        std::optional<bool> val = getAtomicValue<bool>();
+        if (val == std::nullopt) {
+            return true;
+        }
+        return *val;
     }
 
     Datum() = default;
@@ -131,29 +138,75 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
 
     explicit SExpr(Atom atom) : car{std::move(atom)} {}
 
-    explicit SExpr(std::shared_ptr<SExpr> ptr) :
-        car{std::move(ptr)} {}
+    explicit SExpr(std::shared_ptr<SExpr> ptr) : car{std::move(ptr)} {}
 
     class iterator {
         friend struct SExpr;
         SExprPtr curr;
 
         iterator(SExprPtr _curr) : curr{_curr} {}
+
       public:
         Datum& operator*() { return curr->car; }
         Datum* operator->() { return &curr->car; }
-        iterator& operator++() { curr = curr->cdr; return *this; }
+        // preincrement
+        iterator& operator++() {
+            curr = curr->cdr;
+            return *this;
+        }
+        // postincrement
+        iterator operator++(int) {
+            iterator copy{*this};
+            ++(*this);
+            return copy;
+        }
 
-        bool operator==(const iterator &other) const { return curr == other.curr; }
-        bool operator!=(const iterator &other) const { return !(*this == other); }
+        bool operator==(const iterator& other) const {
+            return curr == other.curr;
+        }
+        bool operator!=(const iterator& other) const {
+            return !(*this == other);
+        }
     };
 
-    iterator begin() { return iterator(shared_from_this()); }
-    iterator end() { return iterator(nullptr); }
+    class const_iterator {
+        friend struct SExpr;
+        std::shared_ptr<const SExpr> curr;
+
+        const_iterator(std::shared_ptr<const SExpr> _curr) : curr{_curr} {}
+
+      public:
+        const Datum& operator*() { return curr->car; }
+        const Datum* operator->() { return &curr->car; }
+        // preincrement
+        const_iterator& operator++() {
+            curr = curr->cdr;
+            return *this;
+        }
+        // postincrement
+        const_iterator operator++(int) {
+            const_iterator copy{*this};
+            ++(*this);
+            return copy;
+        }
+
+        bool operator==(const const_iterator& other) const {
+            return curr == other.curr;
+        }
+        bool operator!=(const const_iterator& other) const {
+            return !(*this == other);
+        }
+    };
+
+    iterator begin() { return iterator{shared_from_this()}; }
+    iterator end() { return iterator{nullptr}; }
+    const_iterator begin() const { return const_iterator{shared_from_this()}; }
+    const_iterator end() const { return const_iterator{nullptr}; }
+
     // TODO: don't depend on this too much as it is O(N)
-    size_t size() const {
-        return 1 + (cdr == nullptr ? 0 : cdr->size());
-    }
+    size_t size() const { return 1 + (cdr == nullptr ? 0 : cdr->size()); }
+
+    friend std::ostream& operator<<(std::ostream& os, const SExpr& expr);
 };
 
 using BuiltInFunc = Datum(const SExprPtr&, const std::shared_ptr<SymbolTable>&);

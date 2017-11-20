@@ -69,7 +69,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("((lambda (x y) (+ x y)) 4 5)"sv, 9L);
     runEvalTest("((lambda (x y) (x y)) (lambda (z) (+ z z z)) 5)"sv, 15L);
 
-    runEvalTest("(if nil 4 5)"sv, 5L);
+    runEvalTest("(if #f 4 5)"sv, 5L);
     runEvalTest("(if 1 4 5)"sv, 4L);
 
     runEvalTest("(+ 3.4 4.5)"sv, 7.9);
