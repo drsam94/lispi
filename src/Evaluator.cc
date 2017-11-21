@@ -5,18 +5,25 @@
 Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     // TODO: have a distinciton between true "special forms" (i.e if, quote)
     // and library-defined functions (like "+")
+
+    // Procedures
     globalScope->emplace("+", &Evaluator::builtinAdd);
     globalScope->emplace("-", &Evaluator::builtinSub);
     globalScope->emplace("*", &Evaluator::builtinMul);
+    globalScope->emplace("car", &Evaluator::builtinCar);
+    globalScope->emplace("cdr", &Evaluator::builtinCdr);
+    globalScope->emplace("eq?", &Evaluator::builtinEq);
+    globalScope->emplace("list", &Evaluator::builtinList);
+
+    // Special Forms
     globalScope->emplace("lambda", &Evaluator::builtinLambdaSF);
     globalScope->emplace("if", &Evaluator::builtinIfSF);
     globalScope->emplace("define", &Evaluator::builtinDefineSF);
+    globalScope->emplace("quote", &Evaluator::builtinQuoteSF);
+
+    // Special Globals
     globalScope->emplace("#t", Datum{Atom{true}});
     globalScope->emplace("#f", Datum{Atom{false}});
-    globalScope->emplace("quote", &Evaluator::builtinQuoteSF);
-    globalScope->emplace("car", &Evaluator::builtinCarSF);
-    globalScope->emplace("cdr", &Evaluator::builtinCdrSF);
-    globalScope->emplace("eq?", &Evaluator::builtinEqSF);
 }
 
 template <typename T>

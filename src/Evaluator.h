@@ -19,18 +19,21 @@ class Evaluator {
                                       const SExprPtr& args,
                                       const std::shared_ptr<SymbolTable>& st);
 
-    /// defintions of builtins/special forms
+    /// Builtin Functions
     static BuiltInFunc builtinAdd;
     static BuiltInFunc builtinSub;
     static BuiltInFunc builtinMul;
     static BuiltInFunc builtinDiv;
+    static BuiltInFunc builtinCar;
+    static BuiltInFunc builtinCdr;
+    static BuiltInFunc builtinEq;
+    static BuiltInFunc builtinList;
+
+    /// Special Forms
     static BuiltInFunc builtinLambdaSF;
     static BuiltInFunc builtinIfSF;
     static BuiltInFunc builtinDefineSF;
     static BuiltInFunc builtinQuoteSF;
-    static BuiltInFunc builtinCarSF;
-    static BuiltInFunc builtinCdrSF;
-    static BuiltInFunc builtinEqSF;
   public:
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
