@@ -81,5 +81,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("(car '(1 2))", 1L);
     runEvalTest("(car (cdr '(1 2 3)))", 2L);
     runEvalTest("(if (eq? (+ 3 4) 7) 5 4)", 5L);
+
+    runEvalTest("(null? '())", Datum{Atom{true}});
+    runEvalTest("(null? (cdr '(1)))", Datum{Atom{true}});
+    runEvalTest("(null? '(1))", Datum{Atom{false}});
+    runEvalTest("(car (cdr (list 1 2 3)))", 2L);
     TS_SUMMARIZE();
 }

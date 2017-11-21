@@ -42,7 +42,11 @@ std::ostream& operator<<(std::ostream& os, const Datum& datum) {
     return std::visit(
         Visitor{[&os](const Atom& atom) -> std::ostream& { return os << atom; },
                 [&os](const SExprPtr& sexpr) -> std::ostream& {
-                    return os << *sexpr;
+                    if (sexpr == nullptr) {
+                        return os << "'()";
+                    } else {
+                        return os << *sexpr;
+                    }
                 }},
         datum.data);
 }
@@ -73,4 +77,8 @@ operator[](const std::string& s) {
     } else {
         return it->second;
     }
+}
+
+std::variant<Datum, SpecialForm>& SymbolTable::get(const Symbol& s) {
+    return (*this)[+s];
 }

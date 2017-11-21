@@ -26,7 +26,8 @@ class Evaluator {
     static BuiltInFunc builtinDiv;
     static BuiltInFunc builtinCar;
     static BuiltInFunc builtinCdr;
-    static BuiltInFunc builtinEq;
+    static BuiltInFunc builtinEqQ;
+    static BuiltInFunc builtinNullQ;
     static BuiltInFunc builtinList;
 
     /// Special Forms

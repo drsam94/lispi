@@ -221,6 +221,7 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     explicit SymbolTable(const std::shared_ptr<SymbolTable>& p)
         : parent{p} {}
     std::variant<Datum, SpecialForm>& operator[](const std::string& s);
+    std::variant<Datum, SpecialForm>& get(const Symbol& s);
 
     std::variant<Datum, SpecialForm>& emplace(const std::string& s,
                                               const Datum& datum) {
