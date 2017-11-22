@@ -4,11 +4,13 @@ LispFunction::LispFunction(std::vector<Symbol> &&formals,
                            const std::shared_ptr<SExpr> defn,
                            const std::shared_ptr<SymbolTable>& scope,
                            bool isClosure)
-    : formalParameters(std::move(formals)), definition(defn) {
+    : formalParameters(std::move(formals)), definition(defn),
+        defnScope{} {
+
     if (isClosure) {
-        defnScope.emplace<std::shared_ptr<SymbolTable>>(scope);
+        defnScope = scope;
     } else {
-        defnScope.emplace<SymbolTable *>(scope.get());
+        defnScope = scope.get();
     }
 }
 
@@ -81,4 +83,8 @@ operator[](const std::string& s) {
 
 std::variant<Datum, SpecialForm>& SymbolTable::get(const Symbol& s) {
     return (*this)[+s];
+}
+
+std::variant<Datum, SpecialForm>& SymbolTable::get(const Atom& atom) {
+    return (*this)[+atom.get<Symbol>()];
 }

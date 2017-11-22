@@ -14,6 +14,11 @@ class Evaluator {
     static std::optional<T> getOrEvaluate(const Datum &datum,
                                    const std::shared_ptr<SymbolTable>& st);
 
+    /// Evaluate an argument in the context of expanding an argument to a function in an
+    /// SExpr. As the context is a run-time needed computation, throw if the evaluation fails
+    /// instead of returning an optional
+    static Datum computeArg(const Datum &datum, const std::shared_ptr<SymbolTable>& st);
+
     /// Evaluate a lisp function on the given args
     static std::optional<Datum> evalFunction(const LispFunction &func,
                                       const SExprPtr& args,

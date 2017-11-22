@@ -34,40 +34,39 @@ Evaluator::getOrEvaluate(const Datum& datum,
         const Atom& val = datum.getAtom();
         if constexpr (!std::is_same_v<T, Symbol>) {
             if (val.contains<Symbol>()) {
-                // TODO: write helpers so this is less disgusting
-                return Evaluator::getOrEvaluate<T>(
-                    std::get<Datum>(st->get(val.get<Symbol>())), st);
+                return getOrEvaluate<T>(std::get<Datum>(st->get(val)), st);
             }
         }
         return val.get<T>();
     } else {
         const auto& expr = datum.getSExpr();
-        const std::optional<Datum> result = Evaluator::eval(expr, st);
+        const std::optional<Datum> result = eval(expr, st);
         if (!result)
             return std::nullopt;
-        return Evaluator::getOrEvaluate<T>(*result, st);
+        return getOrEvaluate<T>(*result, st);
     }
 }
 
-/// Template specialization for just getting or evaluator a raw datum
-template <>
-std::optional<Datum>
-Evaluator::getOrEvaluate(const Datum& datum,
-                         const std::shared_ptr<SymbolTable>& st) {
+Datum Evaluator::computeArg(const Datum& datum,
+                                   const std::shared_ptr<SymbolTable>& st) {
     if (datum.isAtomic()) {
         const Atom& val = datum.getAtom();
         if (val.contains<Symbol>()) {
-            // TODO: write helpers so this is less disgusting
-            return Evaluator::getOrEvaluate<Datum>(
-                std::get<Datum>(st->get(val.get<Symbol>())), st);
+            // Note: this is where we need the SpecialForm/BuiltinFunc distinction;
+            // this should be able to return, e.g "+", but not "if"
+            return computeArg(std::get<Datum>(st->get(val)), st);
         }
         return Datum{val};
     } else {
-        const auto& expr = datum.getSExpr();
+        const SExprPtr& expr = datum.getSExpr();
         if (expr == nullptr) {
             return Datum{expr};
         } else {
-            return Evaluator::eval(expr, st);
+            std::optional<Datum> ret = eval(expr, st);
+            if (!ret) {
+                throw LispError("Failed to evaluate argument");
+            }
+            return *ret;
         }
     }
 }
@@ -84,11 +83,8 @@ Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
     auto funcScope = func.funcScope();
     for (; formalIt != func.formalParameters.end() && actualIt != args->end();
         ++formalIt, ++actualIt) {
-        auto result = getOrEvaluate<Datum>(*actualIt, scope);
-        if (!result) {
-            return std::nullopt;
-        }
-        funcScope->emplace(+*formalIt, *result);
+        Datum result = computeArg(*actualIt, scope);
+        funcScope->emplace(+*formalIt, result);
     }
     if (func.definition->cdr == nullptr) {
         // Workaround to support things like lambda (x) x...this is probably not
@@ -97,7 +93,7 @@ Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
         if (sym) {
             return std::get<Datum>(funcScope->get(*sym));
         }
-        return getOrEvaluate<Datum>(func.definition->car, funcScope);
+        return computeArg(func.definition->car, funcScope);
     } else {
         return eval(func.definition, funcScope);
     }
@@ -259,19 +255,12 @@ Datum Evaluator::builtinIfSF(const SExprPtr& inputs,
         throw LispError("if takes 3 arguments, found ", inputs->size());
     }
     auto inputIt = inputs->begin();
-    std::optional<Datum> cond = getOrEvaluate<Datum>(*inputIt, st);
-    if (!cond) {
-        throw LispError("Error evaluating condition ", *inputIt);
-    }
+    Datum cond = computeArg(*inputIt, st);
     ++inputIt;
-    if (!cond->isTrue()) {
+    if (!cond.isTrue()) {
         ++inputIt;
     }
-    if (auto ret = Evaluator::getOrEvaluate<Datum>(*inputIt, st); bool(ret)) {
-        return *ret;
-    } else {
-        throw LispError("Error evaluating expression, ", *inputIt);
-    }
+    return computeArg(*inputIt, st);
 }
 
 Datum Evaluator::builtinQuoteSF(const SExprPtr& inputs,
@@ -283,19 +272,19 @@ Datum Evaluator::builtinQuoteSF(const SExprPtr& inputs,
 }
 
 Datum Evaluator::builtinCar(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    std::optional<Datum> arg = Evaluator::getOrEvaluate<Datum>(inputs->car, st);
-    if (!arg || arg->isAtomic()) {
+    Datum arg = computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
         throw LispError("car requires a cons cell");
     }
-    return arg->getSExpr()->car;
+    return arg.getSExpr()->car;
 }
 
 Datum Evaluator::builtinCdr(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    std::optional<Datum> arg = Evaluator::getOrEvaluate<Datum>(inputs->car, st);
-    if (!arg || arg->isAtomic()) {
+    Datum arg = computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
         throw LispError("cdr requires a cons cell");
     }
-    return Datum{arg->getSExpr()->cdr};
+    return Datum{arg.getSExpr()->cdr};
 }
 
 Datum Evaluator::builtinEqQ(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
@@ -304,14 +293,10 @@ Datum Evaluator::builtinEqQ(const SExprPtr& inputs, const std::shared_ptr<Symbol
     }
 
     auto it = inputs->begin();
-    std::optional<Datum> first = Evaluator::getOrEvaluate<Datum>(*it, st);
+    Datum first = computeArg(*it, st);
     ++it;
-    std::optional<Datum> second = Evaluator::getOrEvaluate<Datum>(*it, st);
-    if (!first || !second) {
-        throw LispError("Error evaluating arguments to eq");
-    }
-
-    return Datum{Atom{*first == *second}};
+    Datum second = computeArg(*it, st);
+    return Datum{Atom{first == second}};
 }
 
 Datum Evaluator::builtinList(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
@@ -323,12 +308,7 @@ Datum Evaluator::builtinList(const SExprPtr& inputs, const std::shared_ptr<Symbo
             curr->cdr = std::make_shared<SExpr>(nullptr);
             curr = curr->cdr.get();
         }
-        // TODO: should getOrEvaluate just throw?
-        std::optional<Datum> ev = Evaluator::getOrEvaluate<Datum>(datum, st);
-        if (!ev) {
-            throw LispError("Error evaluating arguments to list");
-        }
-        curr->car = *ev;
+        curr->car = computeArg(datum, st);
         first = false;
     }
     return Datum{ret};
@@ -338,14 +318,10 @@ Datum Evaluator::builtinNullQ(const SExprPtr& inputs, const std::shared_ptr<Symb
     if (inputs->cdr != nullptr) {
         throw LispError("null? expects only 1 argument");
     }
-    std::optional<Datum> arg = Evaluator::getOrEvaluate<Datum>(inputs->car, st);
-    if (!arg) {
-        throw LispError("cannot evaluate arguments to null");
-    }
-    if (arg->isAtomic()) {
+    Datum arg = computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
         return Datum{Atom{false}};
     }
-    const bool isNull = arg->getSExpr() == nullptr;
+    const bool isNull = arg.getSExpr() == nullptr;
     return Datum{Atom{isNull}};
 }
-

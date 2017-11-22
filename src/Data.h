@@ -56,7 +56,7 @@ class LispFunction {
 // An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
 class Atom {
     std::variant<std::monostate, Number, bool,
-                 std::string, Symbol, LispFunction> data;
+                 std::string, Symbol, LispFunction> data{};
   public:
     Atom() = default;
     template <typename T, typename = std::enable_if_t<
@@ -80,7 +80,7 @@ class Atom {
 
 // Any piece of data: can be an Atom or an SExpr
 class Datum {
-    std::variant<Atom, SExprPtr> data;
+    std::variant<Atom, SExprPtr> data{};
   public:
     template<typename T>
     std::optional<T> getAtomicValue() const {
@@ -118,13 +118,9 @@ class Datum {
     }
 
     Datum() = default;
-    Datum(Atom atom) {
-        data.emplace<Atom>(std::move(atom));
-    }
+    Datum(Atom atom) : data{std::move(atom)} {}
 
-    Datum(SExprPtr ptr) {
-        data.emplace<SExprPtr>(std::move(ptr));
-    }
+    Datum(SExprPtr ptr) : data{std::move(ptr)} {}
 
     friend std::ostream &operator<<(std::ostream& os, const Datum& datum);
 
@@ -134,7 +130,7 @@ class Datum {
 // An SExpr/cons cell/pair
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
-    SExprPtr cdr;
+    SExprPtr cdr = nullptr;
 
     explicit SExpr(Atom atom) : car{std::move(atom)} {}
 
@@ -214,7 +210,7 @@ using SpecialForm = std::function<BuiltInFunc>;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   private:
-    std::unordered_map<std::string, std::variant<Datum, SpecialForm>> table;
+    std::unordered_map<std::string, std::variant<Datum, SpecialForm>> table{};
     std::shared_ptr<SymbolTable> parent;
 
   public:
@@ -222,6 +218,7 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
         : parent{p} {}
     std::variant<Datum, SpecialForm>& operator[](const std::string& s);
     std::variant<Datum, SpecialForm>& get(const Symbol& s);
+    std::variant<Datum, SpecialForm>& get(const Atom& datum);
 
     std::variant<Datum, SpecialForm>& emplace(const std::string& s,
                                               const Datum& datum) {

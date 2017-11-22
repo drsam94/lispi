@@ -1,6 +1,8 @@
 CC = g++
 OPT = 0
-WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat
+WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ -Wstrict-null-sentinel \
+		   -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wchkp -Wdouble-promotion \
+		   -Wimplicit-fallthrough -Wuninitialized -Wsuggest-override -Wlogical-op
 # workaround for https://bugs.llvm.org/show_bug.cgi?id=33222
 # we need to compile against libc++, and we also need to make sure
 # the linker knows how to do that; this assumes you have an environment
@@ -13,7 +15,7 @@ else
 	STDLIB=
 	STDLINK=
 endif
-CFLAGS = -g --std=c++1z $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
+CFLAGS = -g --std=c++17 $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build
 BINDIR = ../bin
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o

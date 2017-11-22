@@ -11,7 +11,10 @@ class FileOpen {
   public:
     FileOpen(const char *path, const char *mode) :
         fp(fopen(path, mode)) {}
-
+    FileOpen(FileOpen&) = delete;
+    FileOpen& operator=(FileOpen&) = delete;
+    FileOpen(FileOpen&&) = delete;
+    FileOpen& operator=(FileOpen&&) = delete;
     ~FileOpen() { fclose(fp); }
     FILE *get() { return fp; }
 };
