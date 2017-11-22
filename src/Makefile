@@ -8,9 +8,9 @@ OPT = 0
 ifeq ($(CC), clang++)
 	STDLIB = --stdlib=libc++
 	STDLINK = -L$(CLANG)/lib -Wl,-rpath,$(CLANG)/lib -lc++abi
-	# For clang, we turn on Weverything and explicitly disable the silly things.
-	# Of these, the one that would seem most useful to turn on is undefined-func-template,
-	# but it appears to have a bug with handling C++17 class template deduction guides
+	# There is a bug with -Wundefined-func-template in clang5.0 with class tempalte deduction
+	# guides. This bug has been fixed in trunk, so we should be able to reenable that warning
+	# with the next update of clang. See https://bugs.llvm.org/show_bug.cgi?id=34776
 	EXTRAWARN = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
 				-Wno-exit-time-destructors -Wno-global-constructors -Wno-c++98-compat-pedantic \
 				-Wno-padded -Wno-undefined-func-template -Wno-missing-variable-declarations \
