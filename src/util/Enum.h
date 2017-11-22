@@ -25,7 +25,7 @@ class EnumInternal {
         do {
             beginIt = std::find_if_not(endIt, str.cend(), isWhitespace);
             endIt = std::find_if(beginIt, str.end(), isWhitespace);
-            *arrIt = std::string(&*beginIt, endIt - beginIt);
+            *arrIt = std::string(&*beginIt, static_cast<size_t>(endIt - beginIt));
         } while (++arrIt != ret.end());
         return ret;
     }
@@ -45,7 +45,7 @@ class EnumInternal {
       public:                                                                  \
         EnumType() : _val(EnumT::Unset) {}                                     \
         constexpr EnumType(UnderlyingType ul) : _val(ul) {}                    \
-        constexpr EnumType(EnumT other) : _val(other){};                       \
+        constexpr EnumType(EnumT other) : _val(other) {}                       \
         operator EnumT() const { return static_cast<EnumT>(_val); }            \
         explicit operator UnderlyingType() const { return toUnderlying(); }    \
         UnderlyingType toUnderlying() const { return _val; }                   \

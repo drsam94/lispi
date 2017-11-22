@@ -53,5 +53,4 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
             cout << "error: " << err.what() << endl;
         }
     } while (true);
-    return 0;
 }

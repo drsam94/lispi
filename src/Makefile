@@ -1,20 +1,28 @@
 CC = g++
 OPT = 0
-WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ -Wstrict-null-sentinel \
-		   -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wchkp -Wdouble-promotion \
-		   -Wimplicit-fallthrough -Wuninitialized -Wsuggest-override -Wlogical-op
 # workaround for https://bugs.llvm.org/show_bug.cgi?id=33222
 # we need to compile against libc++, and we also need to make sure
 # the linker knows how to do that; this assumes you have an environment
 # variable CLANG pointing to a clang installation, it's possible that you can leave
 # STDLINK undefined on your system. Or, easier solution, just don't use clang
 ifeq ($(CC), clang++)
-	STDLIB= --stdlib=libc++
-	STDLINK= -L$(CLANG)/lib -Wl,-rpath,$(CLANG)/lib -lc++abi
+	STDLIB = --stdlib=libc++
+	STDLINK = -L$(CLANG)/lib -Wl,-rpath,$(CLANG)/lib -lc++abi
+	# For clang, we turn on Weverything and explicitly disable the silly things.
+	# Of these, the one that would seem most useful to turn on is undefined-func-template,
+	# but it appears to have a bug with handling C++17 class template deduction guides
+	EXTRAWARN = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
+				-Wno-exit-time-destructors -Wno-global-constructors -Wno-c++98-compat-pedantic \
+				-Wno-padded -Wno-undefined-func-template -Wno-missing-variable-declarations \
+				-Wno-missing-prototypes
 else
-	STDLIB=
-	STDLINK=
+	STDLIB =
+	STDLINK =
+	EXTRAWARN = -Wstrict-null-sentinel -Wchkp -Wsuggest-override -Wlogical-op
 endif
+WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
+		   -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion \
+		   -Wimplicit-fallthrough -Wuninitialized $(EXTRAWARN)
 CFLAGS = -g --std=c++17 $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build
 BINDIR = ../bin

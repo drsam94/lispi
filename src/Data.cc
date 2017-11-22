@@ -88,3 +88,5 @@ std::variant<Datum, SpecialForm>& SymbolTable::get(const Symbol& s) {
 std::variant<Datum, SpecialForm>& SymbolTable::get(const Atom& atom) {
     return (*this)[+atom.get<Symbol>()];
 }
+
+LispError::~LispError() = default;

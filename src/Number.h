@@ -3,11 +3,18 @@
 
 #include "util/Util.h"
 #include <iostream>
+#include <math.h>
 #include <variant>
+
 // Type to encapsulate numbers in lisp. Only implementing a subset of features for now
 class Number {
     // Need to support Rationals and bignums, maintain the idea of "exactness"...
     std::variant<long, double> data;
+
+    static bool fuzzyEq(double a, double b) {
+        static constexpr double epsilon = 0x1p-20;
+        return fabs(a - b) < epsilon;
+    }
   public:
     // Default construct with long value, as long will get coerced to other
     // types in operations
@@ -50,7 +57,11 @@ class Number {
     }
 
     bool operator==(const Number& other) const {
-        return std::visit([](auto v1, auto v2) { return v1 == v2; },
+        return std::visit(
+            Visitor{[](double v1, double v2) { return fuzzyEq(v1, v2); },
+                    [](double v1, long v2) { return static_cast<long>(v1) == v2; },
+                    [](long v1, double v2) { return v1 == static_cast<long>(v2); },
+                    [](auto v1, auto v2) { return v1 == v2; }},
             data, other.data);
     }
     bool operator!=(const Number& other) const {

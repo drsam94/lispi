@@ -9,7 +9,7 @@ namespace TestSuite {
     inline size_t failedTests = 0;
 }
 
-#define _TEST_ASSERT(x, msg)                                                   \
+#define TEST_ASSERT_(x, msg)                                                   \
     do {                                                                       \
         if (!(x)) {                                                            \
             ++TestSuite::failedTests;                                          \
@@ -20,7 +20,7 @@ namespace TestSuite {
         }                                                                      \
     } while (0);
 
-#define TS_ASSERT(x) _TEST_ASSERT((x), #x " failed")
+#define TS_ASSERT(x) TEST_ASSERT_((x), #x " failed")
 
 // Prints a helpful message so long as the input types support operator<<
 #define TS_ASSERT_EQ(x, y)                                                     \
@@ -34,10 +34,10 @@ namespace TestSuite {
             break;                                                             \
         }                                                                      \
         _stream << #x " != " #y << " (" << _tmp_x << " != " << _tmp_y << ")";  \
-        _TEST_ASSERT(false, _stream.str())                                     \
+        TEST_ASSERT_(false, _stream.str())                                     \
     } while (0);
 
 #define TS_SUMMARIZE()                                                         \
     std::cout << "TESTS COMPLETE. PASSED (" << TestSuite::passedTests          \
               << ") FAILED: " << TestSuite::failedTests << endl;               \
-    return TestSuite::failedTests;
+    return static_cast<int>(TestSuite::failedTests);

@@ -7,7 +7,7 @@ Lexer::getToken(TokenType type, std::string_view input, bool (*pred)(char)) {
     auto it = input.begin();
     for (; it < input.end() && pred(*it); ++it)
         ;
-    size_t len = std::distance(input.begin(), it);
+    size_t len = static_cast<size_t>(std::distance(input.begin(), it));
     return { {type, input.substr(0, len)}, input.substr(len)};
 }
 

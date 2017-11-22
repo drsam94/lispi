@@ -246,4 +246,5 @@ class LispError : public std::runtime_error {
     template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
     LispError(Ts&&... args)
         : LispError{stringConcat(std::forward<Ts>(args)...)} {}
+    ~LispError() override;
 };
