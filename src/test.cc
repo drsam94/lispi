@@ -2,7 +2,8 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Evaluator.h"
-#include "util/TestSuite.h"
+#include "test/TestSuite.h"
+#include "test/NumberTest.h"
 
 #include <string>
 #include <string_view>
@@ -86,5 +87,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("(null? (cdr '(1)))", Datum{Atom{true}});
     runEvalTest("(null? '(1))", Datum{Atom{false}});
     runEvalTest("(car (cdr (list 1 2 3)))", 2L);
+
+    NumberTester tester;
+    tester.run();
     TS_SUMMARIZE();
 }

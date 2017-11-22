@@ -23,32 +23,49 @@ endif
 WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
 		   -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion \
 		   -Wimplicit-fallthrough -Wuninitialized $(EXTRAWARN)
-CFLAGS = -g --std=c++17 $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
-OBJDIR = ../build
-BINDIR = ../bin
+CFLAGS = -g --std=c++17 -I. $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
+OBJDIR = ../build/$(VARIANT).$(CC)
+BINDIR = ../bin/$(VARIANT).$(CC)
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o
 
 all: debug
 
-# TODO: generate different objects (different build dirs) fr the different variants
-# so that a make clean isn't always necessary before building a new variant
+# This second expansion directive is necessary in order to get the change of variant
+# to apply in the expansion of OBJS
+.SECONDEXPANSION:
 release: OPT = 3
-release: $(OBJS)
+release: VARIANT=rel
+release: $$(OBJS)
 	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
-debug: $(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi.debug $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
+
+debug: VARIANT = debug
+debug: $$(OBJS)
+	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
 	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
 
 # Note: there are some sanitizatio errors when running the REPL that come from GNU readline
 sanitize: SANITIZE = -fsanitize=address -fsanitize=leak -fsanitize=undefined -fstack-check
-sanitize: $(OBJS)
+
+sanitize: VARIANT = sanitize
+sanitize: $$(OBJS)
 	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o \
-		-o $(BINDIR)/lispi.sanitize $(STDLINK) -lreadline
+		-o $(BINDIR)/lispi $(STDLINK) -lreadline
 	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o \
-		-o $(BINDIR)/test_runner.sanitize $(STDLINK)
+		-o $(BINDIR)/test_runner $(STDLINK)
 
-$(OBJDIR)/%.o : %.cc %.h
+# There is probably a way to do this in a patterned based way, but oh well
+../build/rel.g++/%.o : %.cc %.h
 	$(CC) $(CFLAGS) -c -o $@ $<
-
+../build/debug.g++/%.o : %.cc %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+../build/sanitize.g++/%.o : %.cc %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+../build/rel.clang++/%.o : %.cc %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+../build/debug.clang++/%.o : %.cc %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+../build/sanitize.clang++/%.o : %.cc %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 clean:
-	rm $(OBJDIR)/*.o $(BINDIR)/* || true
+	rm ../build/*/*.o || true

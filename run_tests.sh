@@ -3,9 +3,9 @@
 cd src
 make clean
 make sanitize
-../bin/test_runner.sanitize
+../bin/sanitize-g++/test_runner
 make clean
 make CC=clang++ sanitize
-../bin/test_runner.sanitize
+../bin/santize-clang++/test_runner
 make clean
 cd ..

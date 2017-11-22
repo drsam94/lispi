@@ -14,7 +14,7 @@ namespace TestSuite {
         if (!(x)) {                                                            \
             ++TestSuite::failedTests;                                          \
             std::cout << "TEST FAILED(" << __PRETTY_FUNCTION__ << "("          \
-                      << __FILE__ << ":" << __LINE__ << ") " << msg << endl;   \
+                 << __FILE__ << ":" << __LINE__ << ") " << msg << std::endl;   \
         } else {                                                               \
             ++TestSuite::passedTests;                                          \
         }                                                                      \
@@ -37,7 +37,21 @@ namespace TestSuite {
         TEST_ASSERT_(false, _stream.str())                                     \
     } while (0);
 
+#define TS_ASSERT_NEQ(x, y)                                                    \
+    do {                                                                       \
+        const auto _tmp_x = (x);                                               \
+        const auto _tmp_y = (y);                                               \
+        std::stringstream _stream;                                             \
+        const bool _result = _tmp_x != _tmp_y;                                 \
+        if (_result) {                                                         \
+            ++TestSuite::passedTests;                                          \
+            break;                                                             \
+        }                                                                      \
+        _stream << #x " == " #y << " (" << _tmp_x << " == " << _tmp_y << ")";  \
+        TEST_ASSERT_(false, _stream.str())                                     \
+    } while (0);
+
 #define TS_SUMMARIZE()                                                         \
     std::cout << "TESTS COMPLETE. PASSED (" << TestSuite::passedTests          \
-              << ") FAILED: " << TestSuite::failedTests << endl;               \
+              << ") FAILED: " << TestSuite::failedTests << std::endl;          \
     return static_cast<int>(TestSuite::failedTests);
