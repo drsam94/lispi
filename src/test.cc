@@ -4,23 +4,10 @@
 #include "Evaluator.h"
 #include "test/TestSuite.h"
 #include "test/NumberTest.h"
+#include "test/LexerTest.h"
 
-#include <string>
 #include <string_view>
-#include <iostream>
-#include <vector>
 using namespace std;
-
-void runLexTest(string_view programText, std::vector<Token> expectedTokens) {
-    Lexer lex;
-    std::vector<Token> actualTokens  = lex.getTokens(programText);
-    TS_ASSERT_EQ(actualTokens.size(), expectedTokens.size());
-    for (auto itTest = actualTokens.begin(), itGold = expectedTokens.begin();
-         itTest < actualTokens.end() && itGold < expectedTokens.end();
-         ++itTest, ++itGold) {
-        TS_ASSERT_EQ(*itTest, *itGold);
-    }
-}
 
 void runEvalTest(string_view programText, const Datum& result) {
     Lexer lex;
@@ -45,23 +32,6 @@ void runEvalTest(string_view programText, const Number& result) {
 
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
-
-    runLexTest("(+ 1 2)"sv, {{TokenType::Paren, "("sv},
-                              {TokenType::Symbol, "+"sv},
-                              {TokenType::Number, "1"sv},
-                              {TokenType::Number, "2"sv},
-                              {TokenType::Paren, ")"sv}});
-
-    runLexTest("(atom? (quote (234 <=>)))"sv, {{TokenType::Paren, "("sv},
-                                                {TokenType::Symbol, "atom?"sv},
-                                                {TokenType::Paren, "("sv},
-                                                {TokenType::Symbol, "quote"sv},
-                                                {TokenType::Paren, "("sv},
-                                                {TokenType::Number, "234"sv},
-                                                {TokenType::Symbol, "<=>"sv},
-                                                {TokenType::Paren, ")"sv},
-                                                {TokenType::Paren, ")"sv},
-                                                {TokenType::Paren, ")"sv}});
 
     runEvalTest("(+ 45 23)"sv, 68L);
     runEvalTest("(+ 1 2 3 4 )"sv, 10L);
@@ -88,7 +58,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     runEvalTest("(null? '(1))", Datum{Atom{false}});
     runEvalTest("(car (cdr (list 1 2 3)))", 2L);
 
-    NumberTester tester;
-    tester.run();
+    {
+        LexerTester tester;
+        tester.run();
+    }
+    {
+        NumberTester tester;
+        tester.run();
+    }
     TS_SUMMARIZE();
 }

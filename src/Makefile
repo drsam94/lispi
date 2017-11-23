@@ -26,7 +26,8 @@ WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
 CFLAGS = -g --std=c++17 -I. $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)
-OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o
+OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/Data.o \
+	   $(OBJDIR)/library/SpecialForms.o
 
 all: debug
 
@@ -36,36 +37,41 @@ all: debug
 release: OPT = 3
 release: VARIANT=rel
 release: $$(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
-	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
+	$(CC) $(CFLAGS) main.cc $(OBJS) -o $(BINDIR)/lispi $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) test.cc $(OBJS) -o $(BINDIR)/test_runner $(STDLINK)
 
 debug: VARIANT = debug
 debug: $$(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o -o $(BINDIR)/lispi $(STDLINK) -lreadline
-	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o -o $(BINDIR)/test_runner $(STDLINK)
+	$(CC) $(CFLAGS) main.cc $(OBJS) -o $(BINDIR)/lispi $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) test.cc $(OBJS) -o $(BINDIR)/test_runner $(STDLINK)
 
 # Note: there are some sanitizatio errors when running the REPL that come from GNU readline
 sanitize: SANITIZE = -fsanitize=address -fsanitize=leak -fsanitize=undefined -fstack-check
-
 sanitize: VARIANT = sanitize
 sanitize: $$(OBJS)
-	$(CC) $(CFLAGS) main.cc $(OBJDIR)/*.o \
-		-o $(BINDIR)/lispi $(STDLINK) -lreadline
-	$(CC) $(CFLAGS) test.cc $(OBJDIR)/*.o \
-		-o $(BINDIR)/test_runner $(STDLINK)
+	$(CC) $(CFLAGS) main.cc $(OBJS) -o $(BINDIR)/lispi $(STDLINK) -lreadline
+	$(CC) $(CFLAGS) test.cc $(OBJS) -o $(BINDIR)/test_runner $(STDLINK)
 
 # There is probably a way to do this in a patterned based way, but oh well
+MAKE_DIR=@mkdir -p $(@D)
+MAKE_OBJ=$(CC) $(CFLAGS) -c -o $@ $<
 ../build/rel.g++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 ../build/debug.g++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 ../build/sanitize.g++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 ../build/rel.clang++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 ../build/debug.clang++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 ../build/sanitize.clang++/%.o : %.cc %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(MAKE_DIR)
+	$(MAKE_OBJ)
 clean:
 	rm ../build/*/*.o || true

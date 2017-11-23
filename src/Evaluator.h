@@ -5,7 +5,7 @@
 #include <memory>
 class Evaluator {
     std::shared_ptr<SymbolTable> globalScope;
-
+  public:
     /// If the given datum is atomic, get the value of the desired type (if it
     /// exists) otherwise, recursively evaluate until we return something of the
     /// desired type.
@@ -35,12 +35,6 @@ class Evaluator {
     static BuiltInFunc builtinNullQ;
     static BuiltInFunc builtinList;
 
-    /// Special Forms
-    static BuiltInFunc builtinLambdaSF;
-    static BuiltInFunc builtinIfSF;
-    static BuiltInFunc builtinDefineSF;
-    static BuiltInFunc builtinQuoteSF;
-  public:
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
     Evaluator();

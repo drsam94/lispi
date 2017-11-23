@@ -206,7 +206,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
 };
 
 using BuiltInFunc = Datum(const SExprPtr&, const std::shared_ptr<SymbolTable>&);
-using SpecialForm = std::function<BuiltInFunc>;
+using SpecialForm = BuiltInFunc*;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
   private:
