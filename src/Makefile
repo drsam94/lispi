@@ -8,7 +8,7 @@ OPT = 0
 ifeq ($(CC), clang++)
 	STDLIB = --stdlib=libc++
 	STDLINK = -L$(CLANG)/lib -Wl,-rpath,$(CLANG)/lib -lc++abi
-	# There is a bug with -Wundefined-func-template in clang5.0 with class tempalte deduction
+	# There is a bug with -Wundefined-func-template in clang5.0 with class template deduction
 	# guides. This bug has been fixed in trunk, so we should be able to reenable that warning
 	# with the next update of clang. See https://bugs.llvm.org/show_bug.cgi?id=34776
 	EXTRAWARN = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
@@ -27,7 +27,7 @@ CFLAGS = -g --std=c++17 -I. $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/data/Data.o \
-	   $(OBJDIR)/library/SpecialForms.o
+	   $(OBJDIR)/library/SpecialForms.o $(OBJDIR)/library/SystemMethods.o
 
 all: debug
 
@@ -74,4 +74,4 @@ MAKE_OBJ=$(CC) $(CFLAGS) -c -o $@ $<
 	$(MAKE_DIR)
 	$(MAKE_OBJ)
 clean:
-	rm ../build/*/*.o || true
+	rm ../build/*/*.o ../build/*/*/*.o || true

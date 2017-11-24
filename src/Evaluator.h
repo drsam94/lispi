@@ -24,17 +24,6 @@ class Evaluator {
                                       const SExprPtr& args,
                                       const std::shared_ptr<SymbolTable>& st);
 
-    /// Builtin Functions
-    static BuiltInFunc builtinAdd;
-    static BuiltInFunc builtinSub;
-    static BuiltInFunc builtinMul;
-    static BuiltInFunc builtinDiv;
-    static BuiltInFunc builtinCar;
-    static BuiltInFunc builtinCdr;
-    static BuiltInFunc builtinEqQ;
-    static BuiltInFunc builtinNullQ;
-    static BuiltInFunc builtinList;
-
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
     Evaluator();
@@ -46,3 +35,24 @@ class Evaluator {
         return eval(expr, globalScope);
     }
 };
+
+template <typename T>
+std::optional<T>
+Evaluator::getOrEvaluate(const Datum& datum,
+                         const std::shared_ptr<SymbolTable>& st) {
+    if (datum.isAtomic()) {
+        const Atom& val = datum.getAtom();
+        if constexpr (!std::is_same_v<T, Symbol>) {
+            if (val.contains<Symbol>()) {
+                return getOrEvaluate<T>(std::get<Datum>(st->get(val)), st);
+            }
+        }
+        return val.get<T>();
+    } else {
+        const auto& expr = datum.getSExpr();
+        const std::optional<Datum> result = eval(expr, st);
+        if (!result)
+            return std::nullopt;
+        return getOrEvaluate<T>(*result, st);
+    }
+}

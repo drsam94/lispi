@@ -3,8 +3,6 @@
 #include "test/EvalTest.h"
 #include "test/NumberTest.h"
 #include "test/LexerTest.h"
-using namespace std;
-
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     {

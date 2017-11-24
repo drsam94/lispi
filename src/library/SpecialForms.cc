@@ -9,6 +9,7 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("quote", &SpecialForms::quoteImpl);
     st.emplace("and", &SpecialForms::andImpl);
     st.emplace("or", &SpecialForms::orImpl);
+    st.emplace("begin", &SpecialForms::beginImpl);
 }
 
 Datum SpecialForms::lambdaImpl(const SExprPtr& inputs,
@@ -136,6 +137,18 @@ Datum SpecialForms::orImpl(const SExprPtr& inputs,
         if (ret.isTrue()) {
             return ret;
         }
+    }
+    return ret;
+}
+
+Datum SpecialForms::beginImpl(const SExprPtr& inputs,
+                               const std::shared_ptr<SymbolTable>& st) {
+    if (inputs == nullptr) {
+        return {};
+    }
+    Datum ret;
+    for (const Datum& datum : *inputs) {
+        ret = Evaluator::computeArg(datum, st);
     }
     return ret;
 }

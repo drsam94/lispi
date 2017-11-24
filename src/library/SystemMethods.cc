@@ -1,0 +1,123 @@
+// (c) Sam Donow 2017
+#include "SystemMethods.h"
+#include "data/Data.h"
+#include "Evaluator.h"
+#include <iostream>
+
+void SystemMethods::insertIntoScope(SymbolTable& st) {
+    st.emplace("+", &SystemMethods::add);
+    st.emplace("-", &SystemMethods::sub);
+    st.emplace("*", &SystemMethods::mul);
+    st.emplace("car", &SystemMethods::car);
+    st.emplace("cdr", &SystemMethods::cdr);
+    st.emplace("eq?", &SystemMethods::eqQ);
+    st.emplace("null?", &SystemMethods::nullQ);
+    st.emplace("list", &SystemMethods::list);
+    st.emplace("display", &SystemMethods::display);
+}
+
+Datum SystemMethods::add(const SExprPtr& inputs,
+                         const std::shared_ptr<SymbolTable>& st) {
+    Number sum{};
+    for (const Datum &datum : *inputs) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
+            sum += *val;
+        } else {
+            throw LispError("TypeError: ", datum, " is not a number");
+        }
+    }
+    return {Atom{sum}};
+}
+
+Datum SystemMethods::sub(const SExprPtr& inputs,
+                         const std::shared_ptr<SymbolTable>& st) {
+    Number diff{};
+    for (auto it = inputs->begin(); it != inputs->end(); ++it) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
+            if (it == inputs->begin() && inputs->size() > 1) {
+                diff = *val;
+            } else {
+                diff -= *val;
+            }
+        } else {
+            throw LispError("TypeError: ", *it, " is not a number");
+        }
+    }
+    return {Atom{diff}};
+}
+
+Datum SystemMethods::mul(const SExprPtr& inputs,
+                         const std::shared_ptr<SymbolTable>& st) {
+    Number prod = 1_N;
+    for (const Datum& datum : *inputs) {
+        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
+            prod *= *val;
+        } else {
+            throw LispError("TypeError: ", datum, " is not a number");
+        }
+    }
+    return {Atom{prod}};
+}
+
+Datum SystemMethods::car(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    Datum arg = Evaluator::computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
+        throw LispError("car requires a cons cell");
+    }
+    return arg.getSExpr()->car;
+}
+
+Datum SystemMethods::cdr(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    Datum arg = Evaluator::computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
+        throw LispError("cdr requires a cons cell");
+    }
+    return Datum{arg.getSExpr()->cdr};
+}
+
+Datum SystemMethods::eqQ(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    if (inputs->size() != 2) {
+        throw LispError("Function expects 2 arguments, received ", inputs->size());
+    }
+
+    auto it = inputs->begin();
+    Datum first = Evaluator::computeArg(*it, st);
+    ++it;
+    Datum second = Evaluator::computeArg(*it, st);
+    return Datum{Atom{first == second}};
+}
+
+Datum SystemMethods::list(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    SExprPtr ret = std::make_shared<SExpr>(nullptr);
+    SExpr* curr = ret.get();
+    bool first = true;
+    for (const Datum& datum : *inputs) {
+        if (!first) {
+            curr->cdr = std::make_shared<SExpr>(nullptr);
+            curr = curr->cdr.get();
+        }
+        curr->car = Evaluator::computeArg(datum, st);
+        first = false;
+    }
+    return Datum{ret};
+}
+
+Datum SystemMethods::nullQ(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    if (inputs->cdr != nullptr) {
+        throw LispError("null? expects only 1 argument");
+    }
+    Datum arg = Evaluator::computeArg(inputs->car, st);
+    if (arg.isAtomic()) {
+        return Datum{Atom{false}};
+    }
+    const bool isNull = arg.getSExpr() == nullptr;
+    return Datum{Atom{isNull}};
+}
+
+Datum SystemMethods::display(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+    if (inputs == nullptr) {
+        return {};
+    }
+    std::cout << Evaluator::computeArg(inputs->car, st);
+    return {};
+}

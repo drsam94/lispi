@@ -66,5 +66,7 @@ class EvalTester {
                     "(and #f (f))", Datum{Atom{false}});
         runEvalTest("(define (f) (f f))\n"
                     "(or #t (f))", Datum{Atom{true}});
+
+        runEvalTest("(begin (+ 1 2) (- 1 2) (* 1 2))", 2_N);
     }
 };
