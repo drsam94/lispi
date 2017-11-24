@@ -16,8 +16,7 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("display", &SystemMethods::display);
 }
 
-Datum SystemMethods::add(LispArgs args,
-                         const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::add(LispArgs args, SymbolTable& st) {
     Number sum{};
     for (const Datum &datum : args) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
@@ -29,8 +28,7 @@ Datum SystemMethods::add(LispArgs args,
     return {Atom{sum}};
 }
 
-Datum SystemMethods::sub(LispArgs args,
-                         const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::sub(LispArgs args, SymbolTable& st) {
     Number diff{};
     for (auto it = args.begin(); it != args.end(); ++it) {
         if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
@@ -46,8 +44,7 @@ Datum SystemMethods::sub(LispArgs args,
     return {Atom{diff}};
 }
 
-Datum SystemMethods::mul(LispArgs args,
-                         const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::mul(LispArgs args, SymbolTable& st) {
     Number prod = 1_N;
     for (const Datum& datum : args) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
@@ -59,7 +56,7 @@ Datum SystemMethods::mul(LispArgs args,
     return {Atom{prod}};
 }
 
-Datum SystemMethods::car(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::car(LispArgs args, SymbolTable& st) {
     Datum arg = Evaluator::computeArg(*args.begin(), st);
     if (arg.isAtomic()) {
         throw LispError("car requires a cons cell");
@@ -67,7 +64,7 @@ Datum SystemMethods::car(LispArgs args, const std::shared_ptr<SymbolTable>& st) 
     return arg.getSExpr()->car;
 }
 
-Datum SystemMethods::cdr(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::cdr(LispArgs args, SymbolTable& st) {
     Datum arg = Evaluator::computeArg(*args.begin(), st);
     if (arg.isAtomic()) {
         throw LispError("cdr requires a cons cell");
@@ -75,7 +72,7 @@ Datum SystemMethods::cdr(LispArgs args, const std::shared_ptr<SymbolTable>& st) 
     return Datum{arg.getSExpr()->cdr};
 }
 
-Datum SystemMethods::eqQ(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::eqQ(LispArgs args, SymbolTable& st) {
     if (args.size() != 2) {
         throw LispError("Function expects 2 arguments, received ", args.size());
     }
@@ -87,7 +84,7 @@ Datum SystemMethods::eqQ(LispArgs args, const std::shared_ptr<SymbolTable>& st) 
     return Datum{Atom{first == second}};
 }
 
-Datum SystemMethods::list(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::list(LispArgs args, SymbolTable& st) {
     SExprPtr ret = std::make_shared<SExpr>(nullptr);
     SExpr* curr = ret.get();
     bool first = true;
@@ -102,7 +99,7 @@ Datum SystemMethods::list(LispArgs args, const std::shared_ptr<SymbolTable>& st)
     return Datum{ret};
 }
 
-Datum SystemMethods::nullQ(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::nullQ(LispArgs args, SymbolTable& st) {
     if (args.size() != 1) {
         throw LispError("null? expects only 1 argument");
     }
@@ -114,7 +111,7 @@ Datum SystemMethods::nullQ(LispArgs args, const std::shared_ptr<SymbolTable>& st
     return Datum{Atom{isNull}};
 }
 
-Datum SystemMethods::display(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::display(LispArgs args, SymbolTable& st) {
     if (args.empty()) {
         return {};
     }

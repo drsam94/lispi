@@ -1,16 +1,16 @@
 #include "Data.h"
 
 LispFunction::LispFunction(std::vector<Symbol> &&formals,
-                           const std::shared_ptr<SExpr> defn,
-                           const std::shared_ptr<SymbolTable>& scope,
+                           const SExprPtr& defn,
+                           SymbolTable& scope,
                            bool isClosure)
     : formalParameters(std::move(formals)), definition(defn),
         defnScope{} {
 
     if (isClosure) {
-        defnScope = scope;
+        defnScope = scope.shared_from_this();
     } else {
-        defnScope = scope.get();
+        defnScope = &scope;
     }
 }
 

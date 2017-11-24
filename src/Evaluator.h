@@ -11,40 +11,37 @@ class Evaluator {
     /// desired type.
     /// return nullopt if there is a failure at any point
     template <typename T>
-    static std::optional<T> getOrEvaluate(const Datum &datum,
-                                   const std::shared_ptr<SymbolTable>& st);
+    static std::optional<T> getOrEvaluate(const Datum &datum, SymbolTable& st);
 
     /// Evaluate an argument in the context of expanding an argument to a function in an
     /// SExpr. As the context is a run-time needed computation, throw if the evaluation fails
     /// instead of returning an optional
-    static Datum computeArg(const Datum &datum, const std::shared_ptr<SymbolTable>& st);
+    static Datum computeArg(const Datum &datum, SymbolTable& st);
 
     /// Evaluate a lisp function on the given args
     static std::optional<Datum> evalFunction(const LispFunction &func,
                                       const SExprPtr& args,
-                                      const std::shared_ptr<SymbolTable>& st);
+                                      SymbolTable& st);
 
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
     Evaluator();
 
     /// Main public interface: evaluates an expression in a given scope
-    static std::optional<Datum> eval(const SExprPtr& expr,
-                              const std::shared_ptr<SymbolTable>& scope);
+    static std::optional<Datum> eval(const SExprPtr& expr, SymbolTable& scope);
     std::optional<Datum> eval(const SExprPtr& expr) {
-        return eval(expr, globalScope);
+        return eval(expr, *globalScope);
     }
 };
 
 template <typename T>
 std::optional<T>
-Evaluator::getOrEvaluate(const Datum& datum,
-                         const std::shared_ptr<SymbolTable>& st) {
+Evaluator::getOrEvaluate(const Datum& datum, SymbolTable& st) {
     if (datum.isAtomic()) {
         const Atom& val = datum.getAtom();
         if constexpr (!std::is_same_v<T, Symbol>) {
             if (val.contains<Symbol>()) {
-                return getOrEvaluate<T>(std::get<Datum>(st->get(val)), st);
+                return getOrEvaluate<T>(std::get<Datum>(st.get(val)), st);
             }
         }
         return val.get<T>();

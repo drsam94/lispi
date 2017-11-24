@@ -38,8 +38,8 @@ class LispFunction {
     std::vector<Symbol> formalParameters;
     SExprPtr definition;
 
-    LispFunction(std::vector<Symbol>&& formals, const SExprPtr defn,
-        const std::shared_ptr<SymbolTable>& scope, bool isClosure);
+    LispFunction(std::vector<Symbol>&& formals, const SExprPtr& defn,
+        SymbolTable& scope, bool isClosure);
 
     std::shared_ptr<SymbolTable> funcScope() const;
   private:
@@ -238,7 +238,7 @@ class LispArgs {
         if (ptr == nullptr) {
             return SExpr::const_iterator{nullptr};
         } else {
-            return static_cast<const SExpr *>(ptr)->begin();
+            return static_cast<const SExpr*>(ptr)->begin();
         }
     }
     auto end() const { return SExpr::const_iterator{nullptr}; }
@@ -248,7 +248,7 @@ class LispArgs {
     size_t size() const { return ptr == nullptr ? 0 : ptr->size(); }
 };
 
-using BuiltInFunc = Datum(LispArgs args, const std::shared_ptr<SymbolTable>&);
+using BuiltInFunc = Datum(LispArgs, SymbolTable&);
 using SpecialForm = BuiltInFunc*;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {

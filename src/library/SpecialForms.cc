@@ -12,8 +12,7 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("begin", &SpecialForms::beginImpl);
 }
 
-Datum SpecialForms::lambdaImpl(LispArgs args,
-                               const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st) {
     std::vector<Symbol> formals;
     if (args.size() < 2) {
         throw LispError("Lambda must have param list and body");
@@ -44,8 +43,7 @@ Datum SpecialForms::lambdaImpl(LispArgs args,
     return {Atom{LispFunction{std::move(formals), impl, st, true}}};
 }
 
-Datum SpecialForms::defineImpl(LispArgs args,
-                               const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st) {
     if (args.size() < 2) {
         throw LispError("Function definition requires declarator and body");
     }
@@ -61,7 +59,7 @@ Datum SpecialForms::defineImpl(LispArgs args,
         if (!value) {
             throw LispError("Invalid variable definition ", *inputIt);
         }
-        st->emplace(+*varName, *value);
+        st.emplace(+*varName, *value);
         return {};
     }
     const SExprPtr& declarator = inputIt->getSExpr();
@@ -82,13 +80,12 @@ Datum SpecialForms::defineImpl(LispArgs args,
     std::shared_ptr<SExpr> impl = defn.isAtomic()
                                       ? std::make_shared<SExpr>(defn.getAtom())
                                       : defn.getSExpr();
-    st->emplace(+*funName,
+    st.emplace(+*funName,
                 Datum{Atom{LispFunction{std::move(formals), impl, st, false}}});
     return {};
 }
 
-Datum SpecialForms::ifImpl(LispArgs args,
-                           const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::ifImpl(LispArgs args, SymbolTable& st) {
     if (args.size() != 3) {
         throw LispError("if takes 3 arguments, found ", args.size());
     }
@@ -101,16 +98,14 @@ Datum SpecialForms::ifImpl(LispArgs args,
     return Evaluator::computeArg(*inputIt, st);
 }
 
-Datum SpecialForms::quoteImpl(LispArgs args,
-                              const std::shared_ptr<SymbolTable>&) {
+Datum SpecialForms::quoteImpl(LispArgs args, SymbolTable&) {
     if (args.size() != 1) {
         throw LispError("quote requires exactly one argument");
     }
     return Datum{args.begin()->getSExpr()};
 }
 
-Datum SpecialForms::andImpl(LispArgs args,
-                            const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::andImpl(LispArgs args, SymbolTable& st) {
     if (args.empty()) {
         return {Atom{true}};
     }
@@ -124,8 +119,7 @@ Datum SpecialForms::andImpl(LispArgs args,
     return ret;
 }
 
-Datum SpecialForms::orImpl(LispArgs args,
-                           const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::orImpl(LispArgs args, SymbolTable& st) {
     if (args.empty()) {
         return {Atom{false}};
     }
@@ -139,8 +133,7 @@ Datum SpecialForms::orImpl(LispArgs args,
     return ret;
 }
 
-Datum SpecialForms::beginImpl(LispArgs args,
-                              const std::shared_ptr<SymbolTable>& st) {
+Datum SpecialForms::beginImpl(LispArgs args, SymbolTable& st) {
     Datum ret;
     for (const Datum& datum : args) {
         ret = Evaluator::computeArg(datum, st);

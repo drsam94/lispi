@@ -16,14 +16,13 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     globalScope->emplace("#f", Datum{Atom{false}});
 }
 
-Datum Evaluator::computeArg(const Datum& datum,
-                                   const std::shared_ptr<SymbolTable>& st) {
+Datum Evaluator::computeArg(const Datum& datum, SymbolTable& st) {
     if (datum.isAtomic()) {
         const Atom& val = datum.getAtom();
         if (val.contains<Symbol>()) {
             // Note: this is where we need the SpecialForm/BuiltinFunc distinction;
             // this should be able to return, e.g "+", but not "if"
-            return computeArg(std::get<Datum>(st->get(val)), st);
+            return computeArg(std::get<Datum>(st.get(val)), st);
         }
         return Datum{val};
     } else {
@@ -42,7 +41,7 @@ Datum Evaluator::computeArg(const Datum& datum,
 
 std::optional<Datum>
 Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
-                        const std::shared_ptr<SymbolTable>& scope) {
+                        SymbolTable& scope) {
     // TODO: some dialects of lisp support optional and variadic parameters...
     if (func.formalParameters.size() != args->size()) {
         return std::nullopt;
@@ -62,18 +61,17 @@ Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
         if (sym) {
             return std::get<Datum>(funcScope->get(*sym));
         }
-        return computeArg(func.definition->car, funcScope);
+        return computeArg(func.definition->car, *funcScope);
     } else {
-        return eval(func.definition, funcScope);
+        return eval(func.definition, *funcScope);
     }
 }
 
 std::optional<Datum>
-Evaluator::eval(const std::shared_ptr<SExpr> &expr,
-                const std::shared_ptr<SymbolTable>& scope) {
+Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
     auto sym = expr->car.getAtomicValue<Symbol>();
     if (sym) {
-        const auto &scopeElem = (*scope)[+*sym];
+        const auto &scopeElem = scope[+*sym];
         if (std::holds_alternative<SpecialForm>(scopeElem)) {
             return std::get<SpecialForm>(scopeElem)(expr->cdr, scope);
         }
