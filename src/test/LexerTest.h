@@ -46,5 +46,10 @@ class LexerTester {
                                     {TokenType::Number, "2"},
                                     {TokenType::Paren, ")"},
                                     {TokenType::Paren, ")"}});
+        runLexTest("'(1 2)", {{TokenType::Quote, "'"},
+                              {TokenType::Paren, "("},
+                              {TokenType::Number, "1"},
+                              {TokenType::Number, "2"},
+                              {TokenType::Paren, ")"}});
     }
 };

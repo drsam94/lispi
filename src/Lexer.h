@@ -1,7 +1,7 @@
 // (c) 2017 Sam Donow
 #pragma once
 #include "util/Enum.h"
-#include "Token.h"
+#include "data/Token.h"
 
 #include <string_view>
 #include <utility>

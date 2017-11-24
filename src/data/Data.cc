@@ -55,10 +55,11 @@ std::ostream& operator<<(std::ostream& os, const Datum& datum) {
 
 std::ostream& operator<<(std::ostream& os, const SExpr& expr) {
     os << "'(";
-    for (const Datum& datum : expr) {
-        os << datum << " ";
+    for (auto it = expr.begin(); it != expr.end();) {
+        const Datum& datum = *it;
+        os << datum << (++it == expr.end() ? ")" : " ");
     }
-    return os << ")";
+    return os;
 }
 
 bool Datum::operator==(const Datum& other) const {

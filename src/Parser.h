@@ -1,8 +1,8 @@
 // (c) 2017 Sam Donow
 #pragma once
 
-#include "Token.h"
-#include "Data.h"
+#include "data/Token.h"
+#include "data/Data.h"
 
 #include <list>
 #include <memory>

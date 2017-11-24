@@ -4,7 +4,9 @@
 #include <math.h>
 std::optional<std::shared_ptr<SExpr>>
 Parser::parse(std::vector<Token> &tokens) {
-    if (tokens.empty() || !tokens.begin()->isOpenParen()) {
+    if (tokens.empty() ||
+        !(tokens.begin()->isOpenParen() ||
+          tokens.begin()->getType() == TokenType::Quote)) {
         return std::nullopt;
     }
     auto[ret, it] = parseImpl(tokens.begin(), tokens.end());
@@ -44,9 +46,11 @@ Atom Parser::atomFromToken(Token token) {
 template <typename Iterator>
 std::pair<std::optional<std::shared_ptr<SExpr>>, Iterator>
 Parser::parseImpl(Iterator first, Iterator last) {
-    // Consume openParen
     Iterator curr = first;
-    ++curr;
+    if (curr->isOpenParen()) {
+        // Consume open paren if it is there
+        ++curr;
+    }
 
     SExprPtr sexpr = nullptr;
     SExpr* currSexpr = nullptr;
@@ -57,11 +61,12 @@ Parser::parseImpl(Iterator first, Iterator last) {
             // The Quote character is really just syntactic sugar for the
             // special form quote
             SExprPtr newSexpr = std::make_shared<SExpr>(Atom{Symbol{"quote"}});
-            if (sexpr == nullptr) {
-                sexpr = newSexpr;
-                currSexpr = sexpr->car.getSExpr().get();
+            const bool isEntire = sexpr == nullptr;
+            if (isEntire) {
+                sexpr = std::move(newSexpr);
+                currSexpr = sexpr.get();
             } else {
-                currSexpr->cdr = std::make_shared<SExpr>(newSexpr);
+                currSexpr->cdr = std::make_shared<SExpr>(std::move(newSexpr));
                 currSexpr = currSexpr->cdr->car.getSExpr().get();
             }
             auto[cdr, next] = parseImpl(++curr, last);
@@ -71,6 +76,9 @@ Parser::parseImpl(Iterator first, Iterator last) {
             currSexpr->cdr = std::make_shared<SExpr>(std::move(*cdr));
             currSexpr = currSexpr->cdr.get();
             curr = next;
+            if (isEntire) {
+                return {sexpr, curr};
+            }
         } else if (curr->isOpenParen()) {
             auto[ret, next] = parseImpl(curr, last);
             if (!ret) {

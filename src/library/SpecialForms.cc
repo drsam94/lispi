@@ -7,6 +7,8 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("if", &SpecialForms::ifImpl);
     st.emplace("define", &SpecialForms::defineImpl);
     st.emplace("quote", &SpecialForms::quoteImpl);
+    st.emplace("and", &SpecialForms::andImpl);
+    st.emplace("or", &SpecialForms::orImpl);
 }
 
 Datum SpecialForms::lambdaImpl(const SExprPtr& inputs,
@@ -21,13 +23,15 @@ Datum SpecialForms::lambdaImpl(const SExprPtr& inputs,
         throw LispError("Lambda parameter list must be a list");
     }
     const SExprPtr& expr = inputIt->getSExpr();
-    for (const Datum& datum : *expr) {
-        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
-        if (!param) {
-            throw LispError("Formal parameter ", expr->car,
-                            " is not an identifier");
-        } else {
-            formals.emplace_back(std::move(*param));
+    if (expr != nullptr) {
+        for (const Datum& datum : *expr) {
+            std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
+            if (!param) {
+                throw LispError("Formal parameter ", expr->car,
+                                " is not an identifier");
+            } else {
+                formals.emplace_back(std::move(*param));
+            }
         }
     }
 
@@ -65,12 +69,14 @@ Datum SpecialForms::defineImpl(const SExprPtr& inputs,
         throw LispError("Name ", declarator->car, " is not an identifier");
     }
     std::vector<Symbol> formals;
-    for (const Datum& datum : *declarator->cdr) {
-        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
-        if (!param) {
-            throw LispError("Name ", datum, " is not an identifier");
+    if (declarator->cdr != nullptr) {
+        for (const Datum& datum : *declarator->cdr) {
+            std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
+            if (!param) {
+                throw LispError("Name ", datum, " is not an identifier");
+            }
+            formals.emplace_back(std::move(*param));
         }
-        formals.emplace_back(std::move(*param));
     }
     ++inputIt;
     const Datum& defn = *inputIt;
@@ -102,4 +108,34 @@ Datum SpecialForms::quoteImpl(const SExprPtr& inputs,
         throw LispError("quote requires exactly one argument");
     }
     return Datum{inputs->car.getSExpr()};
+}
+
+Datum SpecialForms::andImpl(const SExprPtr& inputs,
+                            const std::shared_ptr<SymbolTable>& st) {
+    if (inputs == nullptr) {
+        return {Atom{true}};
+    }
+    Datum ret;
+    for (const Datum& datum : *inputs) {
+        ret = Evaluator::computeArg(datum, st);
+        if (!ret.isTrue()) {
+            return ret;
+        }
+    }
+    return ret;
+}
+
+Datum SpecialForms::orImpl(const SExprPtr& inputs,
+                           const std::shared_ptr<SymbolTable>& st) {
+    if (inputs == nullptr) {
+        return {Atom{false}};
+    }
+    Datum ret;
+    for (const Datum& datum : *inputs) {
+        ret = Evaluator::computeArg(datum, st);
+        if (ret.isTrue()) {
+            return ret;
+        }
+    }
+    return ret;
 }

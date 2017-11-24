@@ -12,7 +12,7 @@
 using namespace std;
 
 string_view getline() {
-    static char *line = nullptr;
+    static char* line = nullptr;
     if (line != nullptr) {
         free(line);
         line = nullptr;
@@ -25,7 +25,7 @@ string_view getline() {
     return line;
 }
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     // readline init
     //
     // disable tab completion

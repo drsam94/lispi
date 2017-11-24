@@ -1,6 +1,6 @@
 // (c) 2017 Sam Donow
 #pragma once
-#include "Data.h"
+#include "data/Data.h"
 
 #include <memory>
 class Evaluator {

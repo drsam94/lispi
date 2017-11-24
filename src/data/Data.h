@@ -1,7 +1,7 @@
 // (c) 2017 Sam Donow
 #pragma once
 
-#include "Number.h"
+#include "data/Number.h"
 #include "util/Util.h"
 
 #include <functional>

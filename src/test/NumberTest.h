@@ -1,5 +1,5 @@
 #include "test/TestSuite.h"
-#include "Number.h"
+#include "data/Number.h"
 #pragma once
 
 struct NumberTester {
