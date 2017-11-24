@@ -16,10 +16,10 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("display", &SystemMethods::display);
 }
 
-Datum SystemMethods::add(const SExprPtr& inputs,
+Datum SystemMethods::add(LispArgs args,
                          const std::shared_ptr<SymbolTable>& st) {
     Number sum{};
-    for (const Datum &datum : *inputs) {
+    for (const Datum &datum : args) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             sum += *val;
         } else {
@@ -29,12 +29,12 @@ Datum SystemMethods::add(const SExprPtr& inputs,
     return {Atom{sum}};
 }
 
-Datum SystemMethods::sub(const SExprPtr& inputs,
+Datum SystemMethods::sub(LispArgs args,
                          const std::shared_ptr<SymbolTable>& st) {
     Number diff{};
-    for (auto it = inputs->begin(); it != inputs->end(); ++it) {
+    for (auto it = args.begin(); it != args.end(); ++it) {
         if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
-            if (it == inputs->begin() && inputs->size() > 1) {
+            if (it == args.begin() && args.size() > 1) {
                 diff = *val;
             } else {
                 diff -= *val;
@@ -46,10 +46,10 @@ Datum SystemMethods::sub(const SExprPtr& inputs,
     return {Atom{diff}};
 }
 
-Datum SystemMethods::mul(const SExprPtr& inputs,
+Datum SystemMethods::mul(LispArgs args,
                          const std::shared_ptr<SymbolTable>& st) {
     Number prod = 1_N;
-    for (const Datum& datum : *inputs) {
+    for (const Datum& datum : args) {
         if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
             prod *= *val;
         } else {
@@ -59,39 +59,39 @@ Datum SystemMethods::mul(const SExprPtr& inputs,
     return {Atom{prod}};
 }
 
-Datum SystemMethods::car(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    Datum arg = Evaluator::computeArg(inputs->car, st);
+Datum SystemMethods::car(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+    Datum arg = Evaluator::computeArg(*args.begin(), st);
     if (arg.isAtomic()) {
         throw LispError("car requires a cons cell");
     }
     return arg.getSExpr()->car;
 }
 
-Datum SystemMethods::cdr(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    Datum arg = Evaluator::computeArg(inputs->car, st);
+Datum SystemMethods::cdr(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+    Datum arg = Evaluator::computeArg(*args.begin(), st);
     if (arg.isAtomic()) {
         throw LispError("cdr requires a cons cell");
     }
     return Datum{arg.getSExpr()->cdr};
 }
 
-Datum SystemMethods::eqQ(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    if (inputs->size() != 2) {
-        throw LispError("Function expects 2 arguments, received ", inputs->size());
+Datum SystemMethods::eqQ(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+    if (args.size() != 2) {
+        throw LispError("Function expects 2 arguments, received ", args.size());
     }
 
-    auto it = inputs->begin();
+    auto it = args.begin();
     Datum first = Evaluator::computeArg(*it, st);
     ++it;
     Datum second = Evaluator::computeArg(*it, st);
     return Datum{Atom{first == second}};
 }
 
-Datum SystemMethods::list(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
+Datum SystemMethods::list(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
     SExprPtr ret = std::make_shared<SExpr>(nullptr);
     SExpr* curr = ret.get();
     bool first = true;
-    for (const Datum& datum : *inputs) {
+    for (const Datum& datum : args) {
         if (!first) {
             curr->cdr = std::make_shared<SExpr>(nullptr);
             curr = curr->cdr.get();
@@ -102,11 +102,11 @@ Datum SystemMethods::list(const SExprPtr& inputs, const std::shared_ptr<SymbolTa
     return Datum{ret};
 }
 
-Datum SystemMethods::nullQ(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    if (inputs->cdr != nullptr) {
+Datum SystemMethods::nullQ(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+    if (args.size() != 1) {
         throw LispError("null? expects only 1 argument");
     }
-    Datum arg = Evaluator::computeArg(inputs->car, st);
+    Datum arg = Evaluator::computeArg(*args.begin(), st);
     if (arg.isAtomic()) {
         return Datum{Atom{false}};
     }
@@ -114,10 +114,10 @@ Datum SystemMethods::nullQ(const SExprPtr& inputs, const std::shared_ptr<SymbolT
     return Datum{Atom{isNull}};
 }
 
-Datum SystemMethods::display(const SExprPtr& inputs, const std::shared_ptr<SymbolTable>& st) {
-    if (inputs == nullptr) {
+Datum SystemMethods::display(LispArgs args, const std::shared_ptr<SymbolTable>& st) {
+    if (args.empty()) {
         return {};
     }
-    std::cout << Evaluator::computeArg(inputs->car, st);
+    std::cout << Evaluator::computeArg(*args.begin(), st);
     return {};
 }

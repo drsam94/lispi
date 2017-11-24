@@ -11,18 +11,18 @@ ifeq ($(CC), clang++)
 	# There is a bug with -Wundefined-func-template in clang5.0 with class template deduction
 	# guides. This bug has been fixed in trunk, so we should be able to reenable that warning
 	# with the next update of clang. See https://bugs.llvm.org/show_bug.cgi?id=34776
-	EXTRAWARN = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
+	WARNINGS = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
 				-Wno-exit-time-destructors -Wno-global-constructors -Wno-c++98-compat-pedantic \
 				-Wno-padded -Wno-undefined-func-template -Wno-missing-variable-declarations \
 				-Wno-missing-prototypes
 else
 	STDLIB =
 	STDLINK =
-	EXTRAWARN = -Wstrict-null-sentinel -Wchkp -Wsuggest-override -Wlogical-op
+	WARNINGS = -Wstrict-null-sentinel -Wchkp -Wsuggest-override -Wlogical-op \
+				-Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
+				-Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion \
+				-Wimplicit-fallthrough -Wuninitialized
 endif
-WARNINGS = -Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
-		   -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion \
-		   -Wimplicit-fallthrough -Wuninitialized $(EXTRAWARN)
 CFLAGS = -g --std=c++17 -I. $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)

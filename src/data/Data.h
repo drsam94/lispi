@@ -138,6 +138,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
 
     class iterator {
         friend struct SExpr;
+        friend class LispArgs;
         SExprPtr curr;
 
         iterator(SExprPtr _curr) : curr{_curr} {}
@@ -167,6 +168,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
 
     class const_iterator {
         friend struct SExpr;
+        friend class LispArgs;
         std::shared_ptr<const SExpr> curr;
 
         const_iterator(std::shared_ptr<const SExpr> _curr) : curr{_curr} {}
@@ -205,7 +207,48 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     friend std::ostream& operator<<(std::ostream& os, const SExpr& expr);
 };
 
-using BuiltInFunc = Datum(const SExprPtr&, const std::shared_ptr<SymbolTable>&);
+// A wrapper around SExpr used for passing arguments; most notably an "empty arguments SExpr"
+// would be a nullptr, while Args will be iterable and yield an empty iteration
+class LispArgs {
+    SExpr *ptr = nullptr;
+  public:
+    LispArgs() = default;
+    LispArgs(const SExprPtr& sexpr) : ptr{sexpr.get()} {}
+    LispArgs(const LispArgs&) = delete;
+    LispArgs operator=(const LispArgs&) = delete;
+    LispArgs(LispArgs&& other) : ptr{other.ptr} {
+        other.ptr = nullptr;
+    }
+    LispArgs& operator==(LispArgs&& other) {
+        ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
+
+    auto begin() {
+        if (ptr == nullptr) {
+            return SExpr::iterator{nullptr};
+        } else {
+            return ptr->begin();
+        }
+    }
+    auto end() { return SExpr::iterator{nullptr}; }
+
+    auto begin() const {
+        if (ptr == nullptr) {
+            return SExpr::const_iterator{nullptr};
+        } else {
+            return static_cast<const SExpr *>(ptr)->begin();
+        }
+    }
+    auto end() const { return SExpr::const_iterator{nullptr}; }
+
+    bool empty() const { return ptr == nullptr; }
+
+    size_t size() const { return ptr == nullptr ? 0 : ptr->size(); }
+};
+
+using BuiltInFunc = Datum(LispArgs args, const std::shared_ptr<SymbolTable>&);
 using SpecialForm = BuiltInFunc*;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {

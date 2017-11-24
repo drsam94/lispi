@@ -12,14 +12,14 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("begin", &SpecialForms::beginImpl);
 }
 
-Datum SpecialForms::lambdaImpl(const SExprPtr& inputs,
+Datum SpecialForms::lambdaImpl(LispArgs args,
                                const std::shared_ptr<SymbolTable>& st) {
     std::vector<Symbol> formals;
-    if (inputs->size() != 2) {
+    if (args.size() < 2) {
         throw LispError("Lambda must have param list and body");
     }
 
-    auto inputIt = inputs->begin();
+    auto inputIt = args.begin();
     if (inputIt->isAtomic()) {
         throw LispError("Lambda parameter list must be a list");
     }
@@ -44,12 +44,12 @@ Datum SpecialForms::lambdaImpl(const SExprPtr& inputs,
     return {Atom{LispFunction{std::move(formals), impl, st, true}}};
 }
 
-Datum SpecialForms::defineImpl(const SExprPtr& inputs,
+Datum SpecialForms::defineImpl(LispArgs args,
                                const std::shared_ptr<SymbolTable>& st) {
-    if (inputs->size() != 2) {
+    if (args.size() < 2) {
         throw LispError("Function definition requires declarator and body");
     }
-    auto inputIt = inputs->begin();
+    auto inputIt = args.begin();
     if (inputIt->isAtomic()) {
         // We are defining a constant
         std::optional<Symbol> varName = inputIt->getAtomicValue<Symbol>();
@@ -70,14 +70,12 @@ Datum SpecialForms::defineImpl(const SExprPtr& inputs,
         throw LispError("Name ", declarator->car, " is not an identifier");
     }
     std::vector<Symbol> formals;
-    if (declarator->cdr != nullptr) {
-        for (const Datum& datum : *declarator->cdr) {
-            std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
-            if (!param) {
-                throw LispError("Name ", datum, " is not an identifier");
-            }
-            formals.emplace_back(std::move(*param));
+    for (const Datum& datum : LispArgs(declarator->cdr)) {
+        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
+        if (!param) {
+            throw LispError("Name ", datum, " is not an identifier");
         }
+        formals.emplace_back(std::move(*param));
     }
     ++inputIt;
     const Datum& defn = *inputIt;
@@ -89,12 +87,12 @@ Datum SpecialForms::defineImpl(const SExprPtr& inputs,
     return {};
 }
 
-Datum SpecialForms::ifImpl(const SExprPtr& inputs,
+Datum SpecialForms::ifImpl(LispArgs args,
                            const std::shared_ptr<SymbolTable>& st) {
-    if (inputs->size() != 3) {
-        throw LispError("if takes 3 arguments, found ", inputs->size());
+    if (args.size() != 3) {
+        throw LispError("if takes 3 arguments, found ", args.size());
     }
-    auto inputIt = inputs->begin();
+    auto inputIt = args.begin();
     Datum cond = Evaluator::computeArg(*inputIt, st);
     ++inputIt;
     if (!cond.isTrue()) {
@@ -103,21 +101,21 @@ Datum SpecialForms::ifImpl(const SExprPtr& inputs,
     return Evaluator::computeArg(*inputIt, st);
 }
 
-Datum SpecialForms::quoteImpl(const SExprPtr& inputs,
+Datum SpecialForms::quoteImpl(LispArgs args,
                               const std::shared_ptr<SymbolTable>&) {
-    if (inputs->size() != 1) {
+    if (args.size() != 1) {
         throw LispError("quote requires exactly one argument");
     }
-    return Datum{inputs->car.getSExpr()};
+    return Datum{args.begin()->getSExpr()};
 }
 
-Datum SpecialForms::andImpl(const SExprPtr& inputs,
+Datum SpecialForms::andImpl(LispArgs args,
                             const std::shared_ptr<SymbolTable>& st) {
-    if (inputs == nullptr) {
+    if (args.empty()) {
         return {Atom{true}};
     }
     Datum ret;
-    for (const Datum& datum : *inputs) {
+    for (const Datum& datum : args) {
         ret = Evaluator::computeArg(datum, st);
         if (!ret.isTrue()) {
             return ret;
@@ -126,13 +124,13 @@ Datum SpecialForms::andImpl(const SExprPtr& inputs,
     return ret;
 }
 
-Datum SpecialForms::orImpl(const SExprPtr& inputs,
+Datum SpecialForms::orImpl(LispArgs args,
                            const std::shared_ptr<SymbolTable>& st) {
-    if (inputs == nullptr) {
+    if (args.empty()) {
         return {Atom{false}};
     }
     Datum ret;
-    for (const Datum& datum : *inputs) {
+    for (const Datum& datum : args) {
         ret = Evaluator::computeArg(datum, st);
         if (ret.isTrue()) {
             return ret;
@@ -141,13 +139,10 @@ Datum SpecialForms::orImpl(const SExprPtr& inputs,
     return ret;
 }
 
-Datum SpecialForms::beginImpl(const SExprPtr& inputs,
-                               const std::shared_ptr<SymbolTable>& st) {
-    if (inputs == nullptr) {
-        return {};
-    }
+Datum SpecialForms::beginImpl(LispArgs args,
+                              const std::shared_ptr<SymbolTable>& st) {
     Datum ret;
-    for (const Datum& datum : *inputs) {
+    for (const Datum& datum : args) {
         ret = Evaluator::computeArg(datum, st);
     }
     return ret;
