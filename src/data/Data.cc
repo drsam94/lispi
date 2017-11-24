@@ -15,11 +15,10 @@ LispFunction::LispFunction(std::vector<Symbol> &&formals,
 }
 
 std::shared_ptr<SymbolTable> LispFunction::funcScope() const {
-    if (std::holds_alternative<SymbolTable*>(defnScope)) {
-        return std::get<SymbolTable*>(defnScope)->makeChild();
-    } else {
-        return std::get<std::shared_ptr<SymbolTable>>(defnScope)->makeChild();
-    }
+    return std::visit(Visitor {
+        [](const std::shared_ptr<SymbolTable>& st) { return st.get(); },
+        [](SymbolTable* st) { return st; }
+    }, defnScope)->makeChild();
 }
 
 std::ostream& operator<<(std::ostream& os, const Atom& atom) {
