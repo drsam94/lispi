@@ -10,6 +10,7 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("and", &SpecialForms::andImpl);
     st.emplace("or", &SpecialForms::orImpl);
     st.emplace("begin", &SpecialForms::beginImpl);
+    st.emplace("cond", &SpecialForms::condImpl);
 }
 
 Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st) {
@@ -139,4 +140,19 @@ Datum SpecialForms::beginImpl(LispArgs args, SymbolTable& st) {
         ret = Evaluator::computeArg(datum, st);
     }
     return ret;
+}
+
+Datum SpecialForms::condImpl(LispArgs args, SymbolTable& st) {
+    for (const Datum& datum : args) {
+        if (unlikely(datum.isAtomic())) {
+            throw LispError("Condition clauses must be pairs");
+        }
+        const SExprPtr& condPair = datum.getSExpr();
+        if (auto sym = condPair->car.getAtomicValue<Symbol>();
+            (sym && +*sym == "else") || Evaluator::computeArg(condPair->car, st).isTrue()) {
+            return beginImpl(condPair->cdr, st);
+        }
+    }
+    // ret value unspecified if all conds false and no else
+    return {};
 }

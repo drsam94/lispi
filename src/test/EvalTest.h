@@ -1,6 +1,6 @@
 // (c) Sam Donow 2017
 #pragma once
-// TODO: Break this up, add aditional features (like testing external representations)
+
 #include "Lexer.h"
 #include "Parser.h"
 #include "Evaluator.h"
@@ -12,11 +12,15 @@ class EvalTester {
         Evaluator ev;
         std::vector<Token> tokens = lex.getTokens(programText);
         auto expr = parser.parse(tokens);
-        TS_ASSERT(bool(expr));
+        if (!expr) {
+            return {};
+        }
         std::optional<Datum> evaluated;
         while (expr) {
             evaluated = ev.eval(*expr);
-            TS_ASSERT(bool(evaluated));
+            if (!evaluated) {
+                return {};
+            }
             expr = parser.parse(tokens);
         }
         return *evaluated;
@@ -25,7 +29,10 @@ class EvalTester {
     Number evNum(std::string_view programText) {
         Datum val = eval(programText);
         std::optional<Number> num = val.getAtomicValue<Number>();
-        TS_ASSERT(bool(num));
+        if (!num) {
+            TS_ASSERT(false);
+            return {};
+        }
         return *num;
     }
 
@@ -71,5 +78,9 @@ class EvalTester {
 
         TS_ASSERT_EQ(evNum("(begin (+ 1 2) (- 1 2) (* 1 2))"), 2_N);
         TS_ASSERT_EQ(evNum("(*)"), 1_N);
+        TS_ASSERT_EQ(evNum("(cond ((eq? 1 2) 1) "
+                                 "((eq? 1 1) 2) "
+                                 "((eq? 2 2) 3))"), 2_N);
+        TS_ASSERT_EQ(evNum("(cond (#f 1) (else 2))"), 2_N);
     }
 };

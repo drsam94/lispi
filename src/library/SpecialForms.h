@@ -20,7 +20,7 @@ class SpecialForms {
     //static BuiltInFunc rscMacroTransformerImpl;
     //static BuiltInFunc syntaxRulesImpl;
     static BuiltInFunc andImpl;
-    //static BuiltInFunc condImpl;
+    static BuiltInFunc condImpl;
     static BuiltInFunc defineImpl;
     //static BuiltInFunc defineStructureImpl;
     //static BuiltInFunc doImpl;
