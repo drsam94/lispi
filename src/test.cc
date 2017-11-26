@@ -1,5 +1,6 @@
 // (c) Sam Donow 2017
 #include "test/TestSuite.h"
+#include "test/BigIntTest.h"
 #include "test/EvalTest.h"
 #include "test/NumberTest.h"
 #include "test/LexerTest.h"
@@ -15,6 +16,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     }
     {
         EvalTester tester;
+        tester.run();
+    }
+    {
+        BigIntTester tester;
         tester.run();
     }
     TS_SUMMARIZE();
