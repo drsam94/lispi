@@ -15,10 +15,13 @@ class BigInt {
     // get a working implementation that can then be improved upon; most of these implementations
     // are the typical naive algorithms (other than that they operate on "digits" of size
     // 2**32)
+
+    // Implementation: Signed Magnitude; a twos complement representation seems quite
+    // difficult with the varying size
     std::vector<uint32_t> data{};
+    bool isNegative = false;
     static constexpr uint32_t MAX_DIGIT = std::numeric_limits<uint32_t>::max();
 
-    // TODO: This actually works independent of sign, I believe.
     static void sumAbsVal(const BigInt& a, const BigInt& b, BigInt& sum) {
         uint64_t carry = 0;
         if (a.data.size() < b.data.size()) {
@@ -33,7 +36,7 @@ class BigInt {
             sum.data.emplace_back(digitSum & MAX_DIGIT);
             carry = digitSum / MAX_DIGIT;
         }
-        uint32_t bExt = b.isNegative() ? 0U : MAX_DIGIT;
+        uint32_t bExt = b.isNegative ? 0U : MAX_DIGIT;
         for (; aIt != a.data.end(); ++aIt) {
             const uint64_t digitSum =
                 static_cast<uint64_t>(*aIt) + bExt + carry;
@@ -41,12 +44,7 @@ class BigInt {
             carry = digitSum >> 32;
         }
         if (carry != 0) {
-            if (a.isNegative() && b.isNegative() && !sum.isNegative()) {
-                // The sum overflowed in the negative direction
-                sum.data.emplace_back(MAX_DIGIT + carry);
-            } else if (!a.isNegative() && !b.isNegative()) {
-                sum.data.emplace_back(carry);
-            }
+            sum.data.emplace_back(carry);
         }
     }
 
@@ -76,9 +74,34 @@ class BigInt {
         prod = std::accumulate(parts.begin(), parts.end(), BigInt{});
     }
 
-    bool isNegative() const {
-        static constexpr uint32_t SIGN_BIT = (1u << 31);
-        return data.back() & SIGN_BIT;
+    static void diffAbsVal(const BigInt& a, const BigInt& b, BigInt& diff) {
+        if (auto cmp = a.compare(-b); cmp == 0) {
+            return;
+        } else if (cmp < 0) {
+            diffAbsVal(b, a, diff);
+            diff.isNegative = true;
+            return;
+        }
+
+        uint32_t carry = 0;
+        auto aIt = a.data.begin();
+        for (auto bIt = b.data.begin(); bIt != b.data.end(); ++aIt, ++bIt) {
+            const uint32_t aDig = *aIt - carry;
+            if (aDig >= *bIt) {
+                diff.data.emplace_back(aDig - *bIt);
+                carry = carry == 1 && *aIt == 0 ? 1 : 0;
+            } else {
+                carry = 1;
+                // Parentheses prevent overflow; wrapping would yield the correct answer, but
+                // this is nicer at least conceptually
+                diff.data.emplace_back((MAX_DIGIT - *bIt) + *aIt);
+            }
+        }
+        for (; aIt != a.data.end(); ++aIt) {
+            const uint32_t aDig = *aIt - carry;
+            diff.data.emplace_back(aDig);
+            carry = carry == 1 && *aIt == 0 ? 1 : 0;
+        }
     }
 
     std::pair<BigInt, uint32_t> divAndMod(uint32_t modulus) {
@@ -108,47 +131,74 @@ class BigInt {
 
     void canonicalize() {
         auto nzIt = data.begin();
-        const uint32_t extDigit = isNegative() ? MAX_DIGIT : 0;
-        // Start iterating from the second digit, so that we don't blow away
-        // -1 and 0
         for (auto it = data.begin(); it != data.end(); ++it) {
-            nzIt = (*it == extDigit) ? it : data.end();
+            nzIt = (*it == 0) ? it : data.end();
         }
-        if (nzIt != data.begin()) {
-            data.erase(nzIt, data.end());
+        data.erase(nzIt, data.end());
+        if (data.empty()) {
+            data.push_back(0);
+            isNegative = false;
         }
     }
 
     struct empty_construct {};
     BigInt(empty_construct) : data{} {}
   public:
-    BigInt() : data{} {data.push_back(0); }
-    BigInt(long val) : data{} { data.push_back(static_cast<unsigned long>(val)); }
+    BigInt() : data{} { data.push_back(0); }
+    BigInt(long val) : data{} {
+        if (val >= 0) {
+            data.push_back(static_cast<unsigned long>(val));
+        } else {
+            isNegative = true;
+            data.push_back(static_cast<unsigned long>(-val));
+        }
+    }
 
     // Comparison Operators
-    bool operator==(const BigInt& other) const {
-        auto[aIt, bIt] = std::mismatch(data.begin(), data.end(),
-                                       other.data.begin(), other.data.end());
-        return aIt == data.end() && bIt == other.data.end();
+
+    // P0515 was approved for C++20, which will allow this (as operator<=>) to implicitly
+    // generate all the other comparison operators
+    int64_t compare(const BigInt& other) const  {
+        if (isNegative != other.isNegative) {
+            return isNegative ? -1 : 1;
+        } else if (data.size() < other.data.size()) {
+            return -1;
+        } else if (data.size() > other.data.size()) {
+            return 1;
+        }
+        for (auto aIt = data.begin(), bIt = other.data.begin(); aIt != data.end(); ++aIt, ++bIt) {
+            // This will become diff = *aIt <=> *bIt
+            if (int64_t diff = static_cast<int64_t>(*aIt) - static_cast<int64_t>(*bIt);
+                    diff != 0) {
+                return diff;
+            }
+        }
+        return 0;
     }
-    bool  operator!=(const BigInt& other) const {
-        return !(*this == other);
-    }
+    bool operator==(const BigInt& other) const { return compare(other) == 0; }
+    bool operator!=(const BigInt& other) const { return compare(other) != 0; }
+    bool operator< (const BigInt& other) const { return compare(other) <  0; }
+    bool operator> (const BigInt& other) const { return compare(other) >  0; }
+    bool operator<=(const BigInt& other) const { return compare(other) <= 0; }
+    bool operator>=(const BigInt& other) const { return compare(other) >= 0; }
 
     // Arithmetic Operators
     BigInt operator+(const BigInt& other) const {
         BigInt ret{empty_construct{}};
-        sumAbsVal(*this, other, ret);
+        if (isNegative == other.isNegative) {
+            sumAbsVal(*this, other, ret);
+        } else if (isNegative) {
+            diffAbsVal(other, *this, ret);
+        } else {
+            diffAbsVal(*this, other, ret);
+        }
         ret.canonicalize();
         return ret;
     }
 
     BigInt operator-() const {
-        BigInt ret{empty_construct{}};
-        ret.data.resize(data.size());
-        std::transform(data.begin(), data.end(), ret.data.begin(),
-                       [](uint32_t digit) { return ~digit + 1; });
-        ret.canonicalize();
+        BigInt ret = *this;
+        ret.isNegative = !isNegative;
         return ret;
     }
 
@@ -158,8 +208,8 @@ class BigInt {
 
     BigInt operator*(const BigInt& other) const {
         BigInt ret{empty_construct{}};
-        const bool neg = other.isNegative() != isNegative();
-        mulAbsVal(this->abs(), other.abs(), ret);
+        const bool neg = other.isNegative != isNegative;
+        mulAbsVal(*this, other, ret);
         ret.canonicalize();
         return neg ? -ret : ret;
     }
@@ -184,11 +234,14 @@ class BigInt {
             return os << "<empty>";
         }
         if (val.data.size() == 1) {
-            return os << static_cast<int32_t>(val.data[0]);
+            if (val.isNegative) {
+                os << "-";
+            }
+            return os << val.data.front();
         }
         BigInt v = val;
         std::vector<uint32_t> partsToPrint;
-        if (v.isNegative()) {
+        if (v.isNegative) {
             v = -v;
             os << "-";
         }
@@ -199,13 +252,15 @@ class BigInt {
         } while (v != BigInt{0});
         for (size_t i = partsToPrint.size() - 1; i >= 1; --i) {
             char buf[32];
-            sprintf(buf, "%010d", partsToPrint[i]);
+            sprintf(buf, "%010u", partsToPrint[i]);
             os << buf;
         }
         return os << partsToPrint[0];
     }
 
     BigInt abs() const {
-        return isNegative() ? -(*this) : *this;
+        BigInt ret = *this;
+        ret.isNegative = false;
+        return ret;
     }
 };

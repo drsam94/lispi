@@ -51,6 +51,14 @@ namespace TestSuite {
         TEST_ASSERT_(false, _stream.str())                                     \
     } while (0);
 
+#define TS_ASSERT_REP(x, y)                                                    \
+    do {                                                                       \
+        const auto _tmp_xr = (x);                                              \
+        std::stringstream _streamr;                                            \
+        _streamr << _tmp_xr;                                                   \
+        TS_ASSERT_EQ(_streamr.str(), y)                                        \
+    } while (0);
+
 #define TS_SUMMARIZE()                                                         \
     std::cout << "TESTS COMPLETE. PASSED (" << TestSuite::passedTests          \
               << ") FAILED: " << TestSuite::failedTests << std::endl;          \

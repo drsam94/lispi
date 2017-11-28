@@ -12,5 +12,12 @@ struct BigIntTester {
         TS_ASSERT_EQ(BigInt{5} - BigInt{6}, BigInt{-1});
         TS_ASSERT_EQ(BigInt{-3} * BigInt{2}, BigInt{-6});
         TS_ASSERT_EQ(BigInt{-3} * BigInt{-2}, BigInt{6});
+        TS_ASSERT_EQ(BigInt{3} - BigInt{3}, BigInt{0});
+        TS_ASSERT(BigInt{-3} < BigInt{4});
+        TS_ASSERT_REP(BigInt{2}, "2");
+        TS_ASSERT_REP(BigInt{-123}, "-123");
+        TS_ASSERT_REP(BigInt{std::numeric_limits<int32_t>::max()} + BigInt{1},
+                    "2147483648");
+
     }
 };
