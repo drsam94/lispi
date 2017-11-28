@@ -82,5 +82,9 @@ class EvalTester {
                                  "((eq? 1 1) 2) "
                                  "((eq? 2 2) 3))"), 2_N);
         TS_ASSERT_EQ(evNum("(cond (#f 1) (else 2))"), 2_N);
+
+        TS_ASSERT_REP(eval("(cons 1 '())"), "'(1)");
+        TS_ASSERT_EQ(evNum("(cdr (cons 1 2))"), 2_N);
+        TS_ASSERT_EQ(evNum("(car (cons 1 2))"), 1_N);
     }
 };

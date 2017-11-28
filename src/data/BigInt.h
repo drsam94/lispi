@@ -125,7 +125,7 @@ class BigInt {
         for (auto it = quotientDigits.rbegin(); it != quotientDigits.rend(); ++it) {
             ret.data.push_back(*it);
         }
-        BigInt mod = *this - (ret * modulus);
+        BigInt mod = *this - (ret * BigInt{static_cast<int>(modulus)});
         return {ret, mod.data[0]};
     }
 
@@ -145,12 +145,12 @@ class BigInt {
     BigInt(empty_construct) : data{} {}
   public:
     BigInt() : data{} { data.push_back(0); }
-    BigInt(long val) : data{} {
+    BigInt(int val) : data{} {
         if (val >= 0) {
-            data.push_back(static_cast<unsigned long>(val));
+            data.push_back(static_cast<uint32_t>(val));
         } else {
             isNegative = true;
-            data.push_back(static_cast<unsigned long>(-val));
+            data.push_back(static_cast<uint32_t>(-val));
         }
     }
 

@@ -67,14 +67,14 @@ Parser::parseImpl(Iterator first, Iterator last) {
                 currSexpr = sexpr.get();
             } else {
                 currSexpr->cdr = std::make_shared<SExpr>(std::move(newSexpr));
-                currSexpr = currSexpr->cdr->car.getSExpr().get();
+                currSexpr = currSexpr->cdr.getSExpr()->car.getSExpr().get();
             }
             auto[cdr, next] = parseImpl(++curr, last);
             if (!cdr) {
                 return {std::nullopt, first};
             }
             currSexpr->cdr = std::make_shared<SExpr>(std::move(*cdr));
-            currSexpr = currSexpr->cdr.get();
+            currSexpr = currSexpr->cdr.getSExpr().get();
             curr = next;
             if (isEntire) {
                 return {sexpr, curr};
@@ -90,7 +90,7 @@ Parser::parseImpl(Iterator first, Iterator last) {
                 currSexpr = sexpr.get();
             } else {
                 currSexpr->cdr = std::make_shared<SExpr>(ptr);
-                currSexpr = currSexpr->cdr.get();
+                currSexpr = currSexpr->cdr.getSExpr().get();
             }
             curr = next;
         } else if (curr->getType() != TokenType::Trivia) {
@@ -100,7 +100,7 @@ Parser::parseImpl(Iterator first, Iterator last) {
                 currSexpr = sexpr.get();
             } else {
                 currSexpr->cdr = std::make_shared<SExpr>(std::move(atom));
-                currSexpr = currSexpr->cdr.get();
+                currSexpr = currSexpr->cdr.getSExpr().get();
             }
             ++curr;
         } else {

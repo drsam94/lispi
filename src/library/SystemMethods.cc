@@ -8,8 +8,11 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("+", &SystemMethods::add);
     st.emplace("-", &SystemMethods::sub);
     st.emplace("*", &SystemMethods::mul);
+
     st.emplace("car", &SystemMethods::car);
     st.emplace("cdr", &SystemMethods::cdr);
+    st.emplace("cons", &SystemMethods::cons);
+
     st.emplace("eq?", &SystemMethods::eqQ);
     st.emplace("null?", &SystemMethods::nullQ);
     st.emplace("list", &SystemMethods::list);
@@ -72,6 +75,16 @@ Datum SystemMethods::cdr(LispArgs args, SymbolTable& st) {
     return Datum{arg.getSExpr()->cdr};
 }
 
+Datum SystemMethods::cons(LispArgs args, SymbolTable& st) {
+    if (args.size() != 2) {
+        throw LispError("Function expects 2 arguments, received ", args.size());
+    }
+    auto it = args.begin();
+    auto ret = std::make_shared<SExpr>(Evaluator::computeArg(*it++, st));
+    ret->cdr = Evaluator::computeArg(*it, st);
+    return {ret};
+}
+
 Datum SystemMethods::eqQ(LispArgs args, SymbolTable& st) {
     if (args.size() != 2) {
         throw LispError("Function expects 2 arguments, received ", args.size());
@@ -91,7 +104,7 @@ Datum SystemMethods::list(LispArgs args, SymbolTable& st) {
     for (const Datum& datum : args) {
         if (!first) {
             curr->cdr = std::make_shared<SExpr>(nullptr);
-            curr = curr->cdr.get();
+            curr = curr->cdr.getSExpr().get();
         }
         curr->car = Evaluator::computeArg(datum, st);
         first = false;

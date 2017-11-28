@@ -54,7 +54,7 @@ Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
         Datum result = computeArg(*actualIt, scope);
         funcScope->emplace(+*formalIt, result);
     }
-    if (func.definition->cdr == nullptr) {
+    if (func.definition->cdr.getSExpr() == nullptr) {
         // Workaround to support things like lambda (x) x...this is probably not
         // fully compliant with the spec
         auto sym = func.definition->car.getAtomicValue<Symbol>();
@@ -73,7 +73,7 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
     if (sym) {
         const auto &scopeElem = scope[+*sym];
         if (std::holds_alternative<SpecialForm>(scopeElem)) {
-            return std::get<SpecialForm>(scopeElem)(expr->cdr, scope);
+            return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope);
         }
 
         const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
@@ -81,7 +81,7 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
             return std::nullopt;
         }
 
-        return evalFunction(*func, expr->cdr, scope);
+        return evalFunction(*func, expr->cdr.getSExpr(), scope);
     }
 
     if (!expr->car.isAtomic()) {
@@ -94,7 +94,7 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
             return std::nullopt;
         }
 
-        return evalFunction(*func, expr->cdr, scope);
+        return evalFunction(*func, expr->cdr.getSExpr(), scope);
     } else {
         return std::nullopt;
     }

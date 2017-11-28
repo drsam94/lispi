@@ -15,6 +15,20 @@
 #include <variant>
 #include <vector>
 
+class LispError : public std::runtime_error {
+  public:
+    explicit LispError(const std::string& what_arg)
+        : std::runtime_error{what_arg} {}
+    explicit LispError(const char* what_arg) : std::runtime_error{what_arg} {}
+
+    // stringstream seems pretty slow, but error generation isn't exactly the
+    // sort of thing that needs to be fast
+    template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
+    LispError(Ts&&... args)
+        : LispError{stringConcat(std::forward<Ts>(args)...)} {}
+    ~LispError() override;
+};
+
 struct SExpr;
 using SExprPtr = std::shared_ptr<SExpr>;
 class SymbolTable;
@@ -61,7 +75,7 @@ class Atom {
     Atom() = default;
     template <typename T, typename = std::enable_if_t<
                               !std::is_same_v<Atom, std::remove_reference<T>>>>
-    explicit Atom(T &&val) : data(std::forward<T>(val)) {}
+    explicit Atom(T&& val) : data(std::forward<T>(val)) {}
 
     template<typename T>
     decltype(auto) get() const {
@@ -73,7 +87,7 @@ class Atom {
         return std::holds_alternative<T>(data);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Atom &atom);
+    friend std::ostream& operator<<(std::ostream& os, const Atom &atom);
 
     bool operator==(const Atom& other) const;
 };
@@ -84,7 +98,7 @@ class Datum {
   public:
     template<typename T>
     std::optional<T> getAtomicValue() const {
-        if (!std::holds_alternative<Atom>(data)) {
+        if (!isAtomic()) {
             return std::nullopt;
         }
         const Atom& atom = std::get<Atom>(data);
@@ -95,11 +109,19 @@ class Datum {
     }
 
     const SExprPtr& getSExpr() const {
-        return std::get<SExprPtr>(data);
+        if (std::holds_alternative<SExprPtr>(data)) {
+            return std::get<SExprPtr>(data);
+        } else {
+            throw LispError("Use of atom as pair");
+        }
     }
 
     const Atom& getAtom() const {
-        return std::get<Atom>(data);
+        if (std::holds_alternative<Atom>(data)) {
+            return std::get<Atom>(data);
+        } else {
+            throw LispError("Use of pair as atom");
+        }
     }
 
     bool isAtomic() const noexcept {
@@ -128,13 +150,17 @@ class Datum {
 };
 
 // An SExpr/cons cell/pair
+// This is really a pair, while the SExprs we parse are true lists (i.e cdr is always an SExpr)
+// I should make the interface easier to use that way while still supporting general pairs
 struct SExpr : std::enable_shared_from_this<SExpr> {
     Datum car;
-    SExprPtr cdr = nullptr;
+    Datum cdr{SExprPtr{nullptr}};
 
-    explicit SExpr(Atom atom) : car{std::move(atom)} {}
+    explicit SExpr(const Atom& atom) : car{atom} {}
 
-    explicit SExpr(std::shared_ptr<SExpr> ptr) : car{std::move(ptr)} {}
+    explicit SExpr(const SExprPtr& ptr) : car{ptr} {}
+
+    explicit SExpr(const Datum& datum) : car{datum} {}
 
     class iterator {
         friend struct SExpr;
@@ -148,7 +174,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
         Datum* operator->() { return &curr->car; }
         // preincrement
         iterator& operator++() {
-            curr = curr->cdr;
+            curr = curr->cdr.getSExpr();
             return *this;
         }
         // postincrement
@@ -178,7 +204,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
         const Datum* operator->() { return &curr->car; }
         // preincrement
         const_iterator& operator++() {
-            curr = curr->cdr;
+            curr = curr->cdr.getSExpr();
             return *this;
         }
         // postincrement
@@ -202,7 +228,10 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
     const_iterator end() const { return const_iterator{nullptr}; }
 
     // TODO: don't depend on this too much as it is O(N)
-    size_t size() const { return 1 + (cdr == nullptr ? 0 : cdr->size()); }
+    size_t size() const {
+        const SExprPtr& cdrList = cdr.getSExpr();
+        return 1 + (cdrList == nullptr ? 0 : cdrList->size());
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const SExpr& expr);
 };
@@ -276,18 +305,4 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     std::shared_ptr<SymbolTable> makeChild() {
         return std::make_shared<SymbolTable>(shared_from_this());
     }
-};
-
-class LispError : public std::runtime_error {
-  public:
-    explicit LispError(const std::string& what_arg)
-        : std::runtime_error{what_arg} {}
-    explicit LispError(const char* what_arg) : std::runtime_error{what_arg} {}
-
-    // stringstream seems pretty slow, but error generation isn't exactly the
-    // sort of thing that needs to be fast
-    template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
-    LispError(Ts&&... args)
-        : LispError{stringConcat(std::forward<Ts>(args)...)} {}
-    ~LispError() override;
 };

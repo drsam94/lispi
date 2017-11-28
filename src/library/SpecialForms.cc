@@ -69,7 +69,7 @@ Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st) {
         throw LispError("Name ", declarator->car, " is not an identifier");
     }
     std::vector<Symbol> formals;
-    for (const Datum& datum : LispArgs(declarator->cdr)) {
+    for (const Datum& datum : LispArgs(declarator->cdr.getSExpr())) {
         std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
         if (!param) {
             throw LispError("Name ", datum, " is not an identifier");
@@ -150,7 +150,7 @@ Datum SpecialForms::condImpl(LispArgs args, SymbolTable& st) {
         const SExprPtr& condPair = datum.getSExpr();
         if (auto sym = condPair->car.getAtomicValue<Symbol>();
             (sym && +*sym == "else") || Evaluator::computeArg(condPair->car, st).isTrue()) {
-            return beginImpl(condPair->cdr, st);
+            return beginImpl(condPair->cdr.getSExpr(), st);
         }
     }
     // ret value unspecified if all conds false and no else

@@ -19,11 +19,11 @@ else
 	STDLIB =
 	STDLINK =
 	WARNINGS = -Wstrict-null-sentinel -Wchkp -Wsuggest-override -Wlogical-op \
-				-Wall -Werror -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
+				-Wall -Wextra -Wpedantic -Wshadow -Wformat -Weffc++ \
 				-Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion \
 				-Wimplicit-fallthrough -Wuninitialized
 endif
-CFLAGS = -g --std=c++17 -I. $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
+CFLAGS = -g --std=c++17 -I. -Werror $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/data/Data.o \

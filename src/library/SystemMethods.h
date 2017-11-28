@@ -7,8 +7,11 @@ class SystemMethods {
     static BuiltInFunc sub;
     static BuiltInFunc mul;
     static BuiltInFunc div;
+
     static BuiltInFunc car;
     static BuiltInFunc cdr;
+    static BuiltInFunc cons;
+
     static BuiltInFunc eqQ;
     static BuiltInFunc nullQ;
     static BuiltInFunc list;
