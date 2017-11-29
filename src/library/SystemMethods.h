@@ -6,7 +6,18 @@ class SystemMethods {
     static BuiltInFunc add;
     static BuiltInFunc sub;
     static BuiltInFunc mul;
-    static BuiltInFunc div;
+    static BuiltInFunc exactQ;
+    static BuiltInFunc inexactQ;
+    static BuiltInFunc eq;
+    static BuiltInFunc lt;
+    static BuiltInFunc gt;
+    static BuiltInFunc le;
+    static BuiltInFunc ge;
+    static BuiltInFunc zeroQ;
+    static BuiltInFunc positiveQ;
+    static BuiltInFunc negativeQ;
+    static BuiltInFunc oddQ;
+    static BuiltInFunc evenQ;
 
     static BuiltInFunc car;
     static BuiltInFunc cdr;

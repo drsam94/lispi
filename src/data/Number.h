@@ -8,7 +8,10 @@
 
 // Type to encapsulate numbers in lisp. Only implementing a subset of features for now
 class Number {
-    // Need to support Rationals and bignums, maintain the idea of "exactness"...
+    // TODO:
+    // std::variant<BigInt, double, Rational, Complex> data
+    // Sadly this means that we can't ever do simple integer math on longs, but
+    // BigInt should be optimized for the small cases
     std::variant<long, double> data;
 
     static bool fuzzyEq(double a, double b) {
@@ -76,9 +79,24 @@ class Number {
         return !(*this == other);
     }
 
+    bool operator<(const Number& other) const {
+        return std::visit([](auto x, auto y) { return x < y; }, data, other.data);
+    }
+    bool operator>(const Number& other) const {
+        return std::visit([](auto x, auto y) { return x > y; }, data, other.data);
+    }
+    bool operator<=(const Number& other) const {
+        return std::visit([](auto x, auto y) { return x <= y; }, data, other.data);
+    }
+    bool operator>=(const Number& other) const {
+        return std::visit([](auto x, auto y) { return x >= y; }, data, other.data);
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const Number &num) {
         return std::visit([&os](auto v) -> std::ostream& { return os << v; }, num.data);
     }
+
+    bool isExact() const { return std::holds_alternative<long>(data); }
 };
 
 // User-defined literals for Numbers

@@ -86,5 +86,8 @@ class EvalTester {
         TS_ASSERT_REP(eval("(cons 1 '())"), "'(1)");
         TS_ASSERT_EQ(evNum("(cdr (cons 1 2))"), 2_N);
         TS_ASSERT_EQ(evNum("(car (cons 1 2))"), 1_N);
+
+        TS_ASSERT_EQ(eval("(= 1 (- 2 1) (* 1 1) (+ 0.5 0.5))"), Datum{Atom{true}});
+        TS_ASSERT_EQ(eval("(< 1 2 3 (+ 4 5) (* 5 5))"), Datum{Atom{true}});
     }
 };

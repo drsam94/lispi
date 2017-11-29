@@ -11,12 +11,14 @@ class Evaluator {
     /// desired type.
     /// return nullopt if there is a failure at any point
     template <typename T>
-    static std::optional<T> getOrEvaluate(const Datum &datum, SymbolTable& st);
+    static std::optional<T> getOrEvaluate(const Datum& datum, SymbolTable& st);
 
+    template <typename T>
+    static T getOrEvaluateE(const Datum& datum, SymbolTable& st);
     /// Evaluate an argument in the context of expanding an argument to a function in an
     /// SExpr. As the context is a run-time needed computation, throw if the evaluation fails
     /// instead of returning an optional
-    static Datum computeArg(const Datum &datum, SymbolTable& st);
+    static Datum computeArg(const Datum& datum, SymbolTable& st);
 
     /// Evaluate a lisp function on the given args
     static std::optional<Datum> evalFunction(const LispFunction &func,
@@ -52,4 +54,13 @@ Evaluator::getOrEvaluate(const Datum& datum, SymbolTable& st) {
             return std::nullopt;
         return getOrEvaluate<T>(*result, st);
     }
+}
+
+template <typename T>
+T Evaluator::getOrEvaluateE(const Datum& datum, SymbolTable& st) {
+    std::optional<T> val = getOrEvaluate<T>(datum, st);
+    if (!val) {
+        throw LispError("Type Error, TODO description");
+    }
+    return *val;
 }

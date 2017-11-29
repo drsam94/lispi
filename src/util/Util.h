@@ -39,3 +39,17 @@ std::string stringConcat(Ts&&... args) {
     (ss << ... << args);
     return ss.str();
 }
+
+namespace util {
+template<typename ForwardIterator,
+         typename Functor,
+         typename OpType>
+OpType foldr(ForwardIterator first, ForwardIterator last, OpType val, Functor f) {
+    if (first == last) {
+        return val;
+    } else {
+        const auto& elem = *first;
+        return f(elem, foldr(++first, last, val, f));
+    }
+}
+}

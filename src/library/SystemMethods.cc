@@ -8,6 +8,18 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("+", &SystemMethods::add);
     st.emplace("-", &SystemMethods::sub);
     st.emplace("*", &SystemMethods::mul);
+    st.emplace("=", &SystemMethods::eq);
+    st.emplace("<", &SystemMethods::lt);
+    st.emplace(">", &SystemMethods::gt);
+    st.emplace("<=",&SystemMethods::le);
+    st.emplace("<=",&SystemMethods::ge);
+    st.emplace("zero?", &SystemMethods::zeroQ);
+    st.emplace("positive?", &SystemMethods::positiveQ);
+    st.emplace("negative?", &SystemMethods::negativeQ);
+    //st.emplace("odd?", &SystemMethods::oddQ);
+    //st.emplace("even?", &SystemMethods::evenQ);
+    st.emplace("exact?", &SystemMethods::exactQ);
+    st.emplace("inexact?", &SystemMethods::inexactQ);
 
     st.emplace("car", &SystemMethods::car);
     st.emplace("cdr", &SystemMethods::cdr);
@@ -20,43 +32,110 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
 }
 
 Datum SystemMethods::add(LispArgs args, SymbolTable& st) {
-    Number sum{};
-    for (const Datum &datum : args) {
-        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
-            sum += *val;
-        } else {
-            throw LispError("TypeError: ", datum, " is not a number");
-        }
-    }
-    return {Atom{sum}};
+    return Datum{Atom{
+        util::foldr(args.begin(), args.end(), 0_N, [&st](const Datum& datum, const Number& number) {
+            return number + Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
 }
 
 Datum SystemMethods::sub(LispArgs args, SymbolTable& st) {
     Number diff{};
     for (auto it = args.begin(); it != args.end(); ++it) {
-        if (auto val = Evaluator::getOrEvaluate<Number>(*it, st); bool(val)) {
-            if (it == args.begin() && args.size() > 1) {
-                diff = *val;
-            } else {
-                diff -= *val;
-            }
+        const Number val = Evaluator::getOrEvaluateE<Number>(*it, st);
+        if (it == args.begin() && args.size() > 1) {
+            diff = val;
         } else {
-            throw LispError("TypeError: ", *it, " is not a number");
+            diff -= val;
         }
     }
     return {Atom{diff}};
 }
 
 Datum SystemMethods::mul(LispArgs args, SymbolTable& st) {
-    Number prod = 1_N;
-    for (const Datum& datum : args) {
-        if (auto val = Evaluator::getOrEvaluate<Number>(datum, st); bool(val)) {
-            prod *= *val;
-        } else {
-            throw LispError("TypeError: ", datum, " is not a number");
-        }
+    return Datum{Atom{
+        util::foldr(args.begin(), args.end(), 1_N, [&st](const Datum& datum, const Number& number) {
+            return number * Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::eq(LispArgs args, SymbolTable& st) {
+    if (args.empty()) {
+        return {Atom{false}};
     }
-    return {Atom{prod}};
+    auto it = args.begin();
+    const Number& first = Evaluator::getOrEvaluateE<Number>(*it, st);
+    return Datum{
+        Atom{util::foldr(++it, args.end(), true, [&first, &st](const Datum& datum, bool acc) {
+            return acc && first == Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::lt(LispArgs args, SymbolTable& st) {
+    if (args.empty()) {
+        return {Atom{false}};
+    }
+    auto it = args.begin();
+    const Number& first = Evaluator::getOrEvaluateE<Number>(*it, st);
+    return Datum{
+        Atom{util::foldr(++it, args.end(), true, [&first, &st](const Datum& datum, bool acc) {
+            return acc && first < Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::gt(LispArgs args, SymbolTable& st) {
+    if (args.empty()) {
+        return {Atom{false}};
+    }
+    auto it = args.begin();
+    const Number& first = Evaluator::getOrEvaluateE<Number>(*it, st);
+    return Datum{
+        Atom{util::foldr(++it, args.end(), true, [&first, &st](const Datum& datum, bool acc) {
+            return acc && first > Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::le(LispArgs args, SymbolTable& st) {
+    if (args.empty()) {
+        return {Atom{false}};
+    }
+    auto it = args.begin();
+    const Number& first = Evaluator::getOrEvaluateE<Number>(*it, st);
+    return Datum{
+        Atom{util::foldr(++it, args.end(), true, [&first, &st](const Datum& datum, bool acc) {
+            return acc && first <= Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::ge(LispArgs args, SymbolTable& st) {
+    if (args.empty()) {
+        return {Atom{false}};
+    }
+    auto it = args.begin();
+    const Number& first = Evaluator::getOrEvaluateE<Number>(*it, st);
+    return Datum{
+        Atom{util::foldr(++it, args.end(), true, [&first, &st](const Datum& datum, bool acc) {
+            return acc && first >= Evaluator::getOrEvaluateE<Number>(datum, st);
+        })}};
+}
+
+Datum SystemMethods::exactQ(LispArgs args, SymbolTable& st) {
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st).isExact()}};
+}
+
+Datum SystemMethods::inexactQ(LispArgs args, SymbolTable& st) {
+    return {Atom{!Evaluator::getOrEvaluateE<Number>(*args.begin(), st).isExact()}};
+}
+
+Datum SystemMethods::zeroQ(LispArgs args, SymbolTable& st) {
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st) == 0_N}};
+}
+
+Datum SystemMethods::positiveQ(LispArgs args, SymbolTable& st) {
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st) > 0_N}};
+}
+
+Datum SystemMethods::negativeQ(LispArgs args, SymbolTable& st) {
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st) < 0_N}};
 }
 
 Datum SystemMethods::car(LispArgs args, SymbolTable& st) {
