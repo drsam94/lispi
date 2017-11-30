@@ -14,7 +14,7 @@
 class Lexer {
     static bool isParen(char c) { return c == '(' || c == ')'; }
 
-    static bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n'; }
+    static bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\0'; }
 
     static bool isNumeric(char c) {
         // TODO: support exponential forms, etc

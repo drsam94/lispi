@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <unistd.h>
 using namespace std;
 
 string_view getline() {
@@ -25,11 +26,20 @@ string_view getline() {
     return line;
 }
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
+int main(int argc, char** argv) {
     // readline init
     //
     // disable tab completion
     rl_bind_key('\t', rl_insert);
+    int opt;
+    bool debugPrintTokens = false;
+    while ((opt = getopt(argc, argv, "t")) != -1) {
+        switch (opt) {
+            case 't':
+                debugPrintTokens = true;
+                break;
+        }
+    }
     Lexer lex;
     Parser parser;
     Evaluator evaluator;
@@ -42,6 +52,12 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
                 auto && [ token, modInput ] = lex.next(inputLine);
                 tokens.emplace_back(move(token));
                 inputLine = modInput;
+            }
+            if (debugPrintTokens) {
+                for (const Token& token : tokens) {
+                    cout << token << ", ";
+                }
+                cout << endl;
             }
             auto expr = parser.parse(tokens);
             while (expr) {

@@ -2,7 +2,7 @@
 #include "Parser.h"
 
 #include <math.h>
-std::optional<std::shared_ptr<SExpr>>
+std::optional<SExprPtr>
 Parser::parse(std::vector<Token> &tokens) {
     if (tokens.empty() ||
         !(tokens.begin()->isOpenParen() ||
@@ -10,11 +10,13 @@ Parser::parse(std::vector<Token> &tokens) {
         return std::nullopt;
     }
     auto[ret, it] = parseImpl(tokens.begin(), tokens.end());
-    tokens.erase(tokens.begin(), it);
+    if (ret) {
+        tokens.erase(tokens.begin(), it);
+    }
     return ret;
 }
 
-Atom Parser::atomFromToken(Token token) {
+Atom Parser::atomFromToken(const Token& token) {
     switch (token.getType()) {
     case TokenType::Symbol: {
         return Atom{Symbol{std::string{token.getText()}}};
@@ -44,7 +46,7 @@ Atom Parser::atomFromToken(Token token) {
 }
 
 template <typename Iterator>
-std::pair<std::optional<std::shared_ptr<SExpr>>, Iterator>
+std::pair<std::optional<SExprPtr>, Iterator>
 Parser::parseImpl(Iterator first, Iterator last) {
     Iterator curr = first;
     if (curr->isOpenParen()) {
@@ -84,7 +86,7 @@ Parser::parseImpl(Iterator first, Iterator last) {
             if (!ret) {
                 return {std::nullopt, first};
             }
-            const std::shared_ptr<SExpr>& ptr = *ret;
+            const SExprPtr& ptr = *ret;
             if (sexpr == nullptr) {
                 sexpr = std::make_shared<SExpr>(ptr);
                 currSexpr = sexpr.get();
@@ -94,7 +96,7 @@ Parser::parseImpl(Iterator first, Iterator last) {
             }
             curr = next;
         } else if (curr->getType() != TokenType::Trivia) {
-            Atom atom = atomFromToken(std::move(*curr));
+            Atom atom = atomFromToken(*curr);
             if (!sexpr) {
                 sexpr = std::make_shared<SExpr>(std::move(atom));
                 currSexpr = sexpr.get();
