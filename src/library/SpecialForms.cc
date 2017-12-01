@@ -13,15 +13,16 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("cond", &SpecialForms::condImpl);
 }
 
-Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st) {
+
+std::pair<std::vector<Symbol>, Datum> parseFuncDefn(LispArgs args) {
     std::vector<Symbol> formals;
     if (args.size() < 2) {
-        throw LispError("Lambda must have param list and body");
+        throw LispError("Definition must have param list and body");
     }
 
     auto inputIt = args.begin();
     if (inputIt->isAtomic()) {
-        throw LispError("Lambda parameter list must be a list");
+        throw LispError("Parameter list must be a list");
     }
     const SExprPtr& expr = inputIt->getSExpr();
     if (expr != nullptr) {
@@ -36,18 +37,37 @@ Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st) {
         }
     }
 
-    ++inputIt;
-    const Datum& defn = *inputIt;
-    std::shared_ptr<SExpr> impl = defn.isAtomic()
-                                      ? std::make_shared<SExpr>(defn.getAtom())
-                                      : defn.getSExpr();
-    return {Atom{LispFunction{std::move(formals), impl, st, true}}};
+    return {formals, *++inputIt};
 }
 
-Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st) {
-    if (args.size() < 2) {
-        throw LispError("Function definition requires declarator and body");
+Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st) {
+    auto[formals, defn] = parseFuncDefn(std::move(args));
+    SExprPtr impl =
+        defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
+    return {Atom{LispFunction{std::move(formals), std::move(impl), st, true}}};
+}
+// TODO: how to do named lambda? We don't want to add a new child scope; so we probably need to
+// connect the name with the scope, but we don't want to have a circular referenct with the
+// function referring to a scope the scope referring to the funciton. Should each scope have
+// a notion of "enclosing function name" (empty for non-function based scopes) to aid with
+// tail recursion or something? hmm...interesting stuff
+#if 0
+Datum SpecialForms::namedlLambdaImpl(LispArgs args, SymbolTable& st) {
+    auto[formals, defn] = parseFuncDefn(args, st);
+    if (formals.empty()) {
+        throw Error("Named lambda must have name");
     }
+    Symbol funName = std::move(*formals.begin());
+    formals.erase(formals.begin());
+
+    SExprPtr impl =
+        defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
+
+    return {Atom{LispFunction{std::move(formals), std::move(impl), st, true}}};
+}
+#endif
+
+Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st) {
     auto inputIt = args.begin();
     if (inputIt->isAtomic()) {
         // We are defining a constant
@@ -63,26 +83,17 @@ Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st) {
         st.emplace(+*varName, *value);
         return {};
     }
-    const SExprPtr& declarator = inputIt->getSExpr();
-    std::optional<Symbol> funName = declarator->car.getAtomicValue<Symbol>();
-    if (!funName) {
-        throw LispError("Name ", declarator->car, " is not an identifier");
+    auto [formals, defn] = parseFuncDefn(std::move(args));
+    if (formals.empty()) {
+        throw LispError("Function definition must have name");
     }
-    std::vector<Symbol> formals;
-    for (const Datum& datum : LispArgs(declarator->cdr.getSExpr())) {
-        std::optional<Symbol> param = datum.getAtomicValue<Symbol>();
-        if (!param) {
-            throw LispError("Name ", datum, " is not an identifier");
-        }
-        formals.emplace_back(std::move(*param));
-    }
-    ++inputIt;
-    const Datum& defn = *inputIt;
-    std::shared_ptr<SExpr> impl = defn.isAtomic()
-                                      ? std::make_shared<SExpr>(defn.getAtom())
-                                      : defn.getSExpr();
-    st.emplace(+*funName,
-                Datum{Atom{LispFunction{std::move(formals), impl, st, false}}});
+    Symbol funName = std::move(*formals.begin());
+    formals.erase(formals.begin());
+
+    SExprPtr impl =
+        defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
+    st.emplace(+funName,
+               Datum{Atom{LispFunction{std::move(formals), std::move(impl), st, false}}});
     return {};
 }
 

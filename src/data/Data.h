@@ -51,7 +51,6 @@ class LispFunction {
   public:
     std::vector<Symbol> formalParameters;
     SExprPtr definition;
-
     LispFunction(std::vector<Symbol>&& formals, const SExprPtr& defn,
         SymbolTable& scope, bool isClosure);
 
