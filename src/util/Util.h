@@ -1,7 +1,9 @@
 // (c) Sam Donow 2017
 #pragma once
+#include <limits>
 #include <string>
 #include <sstream>
+#include <type_traits>
 // Random utilities that don't have logical places to go
 
 // RAII file class
@@ -40,6 +42,7 @@ std::string stringConcat(Ts&&... args) {
     return ss.str();
 }
 
+// std::algorithm type utility functions
 namespace util {
 template<typename ForwardIterator,
          typename Functor,
@@ -51,5 +54,28 @@ OpType foldr(ForwardIterator first, ForwardIterator last, OpType val, Functor f)
         const auto& elem = *first;
         return f(elem, foldr(++first, last, val, f));
     }
+}
+
+// SearchFunction is a function IntegralT -> <some integral type>
+// such that it is == 0 for the answer, < 0 if the target is too low and > 0
+// if too high
+template<typename IntegralT, typename SearchFunction>
+IntegralT binSearch(SearchFunction search) {
+    IntegralT low = std::numeric_limits<IntegralT>::min();
+    IntegralT high = std::numeric_limits<IntegralT>::max();
+    // TODO debug this / test this more
+    while (high > low + 1) {
+        // safely compute (high + low) / 2, accounting for overflow
+        IntegralT mid = low + ((high - low) / static_cast<IntegralT>(2));
+        const int val = search(mid);
+        if (val == 0) {
+            return mid;
+        } else if (val < 0) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+    return low;
 }
 }

@@ -53,6 +53,7 @@ sanitize: $$(OBJS)
 	$(CC) $(CFLAGS) test.cc $(OBJS) -o $(BINDIR)/test_runner $(STDLINK)
 
 # There is probably a way to do this in a patterned based way, but oh well
+# also have to make the associated bin directories...
 MAKE_DIR=@mkdir -p $(@D)
 MAKE_OBJ=$(CC) $(CFLAGS) -c -o $@ $<
 ../build/rel.g++/%.o : %.cc %.h
