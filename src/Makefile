@@ -14,7 +14,7 @@ ifeq ($(CC), clang++)
 	WARNINGS = -Weverything -Wno-c++98-c++11-c++14-compat -Wno-c++98-compat \
 				-Wno-exit-time-destructors -Wno-global-constructors -Wno-c++98-compat-pedantic \
 				-Wno-padded -Wno-undefined-func-template -Wno-missing-variable-declarations \
-				-Wno-missing-prototypes
+				-Wno-missing-prototypes -Wno-weak-vtables
 else
 	STDLIB =
 	STDLINK =
@@ -27,7 +27,7 @@ CFLAGS = -g --std=c++17 -I. -Werror $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)
 OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/data/Data.o \
-	   $(OBJDIR)/library/SpecialForms.o $(OBJDIR)/library/SystemMethods.o
+	   $(OBJDIR)/data/BigInt.o $(OBJDIR)/library/SpecialForms.o $(OBJDIR)/library/SystemMethods.o
 
 all: debug
 

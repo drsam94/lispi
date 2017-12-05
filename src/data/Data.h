@@ -1,6 +1,7 @@
 // (c) 2017 Sam Donow
 #pragma once
 
+#include "data/Error.h"
 #include "data/Number.h"
 #include "util/Util.h"
 
@@ -14,20 +15,6 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
-
-class LispError : public std::runtime_error {
-  public:
-    explicit LispError(const std::string& what_arg)
-        : std::runtime_error{what_arg} {}
-    explicit LispError(const char* what_arg) : std::runtime_error{what_arg} {}
-
-    // stringstream seems pretty slow, but error generation isn't exactly the
-    // sort of thing that needs to be fast
-    template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) > 1)>>
-    LispError(Ts&&... args)
-        : LispError{stringConcat(std::forward<Ts>(args)...)} {}
-    ~LispError() override;
-};
 
 struct SExpr;
 using SExprPtr = std::shared_ptr<SExpr>;
@@ -274,6 +261,21 @@ class LispArgs {
     bool empty() const { return ptr == nullptr; }
 
     size_t size() const { return ptr == nullptr ? 0 : ptr->size(); }
+
+    friend std::ostream& operator<<(std::ostream& os, const LispArgs& args) {
+        if (args.ptr == nullptr) {
+            return os << "()";
+        } else {
+            return os << *args.ptr;
+        }
+    }
+};
+
+class ArityError : public LispError {
+  public:
+    ArityError(size_t expected, const LispArgs& args)
+        : LispError("ArityError: expected", expected, " arguments, found ", args.size(), ": ",
+                    args) {}
 };
 
 using BuiltInFunc = Datum(LispArgs, SymbolTable&);

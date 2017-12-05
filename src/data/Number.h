@@ -1,7 +1,9 @@
 // (c) 2017 Sam Donow
 #pragma once
 
+#include "data/Error.h"
 #include "util/Util.h"
+
 #include <iostream>
 #include <math.h>
 #include <variant>
@@ -26,13 +28,11 @@ class Number {
     constexpr Number (double dnum) : data{dnum} {}
 
     const Number operator+(const Number& other) const {
-        return std::visit([](auto v1, auto v2) { return Number{v1 + v2}; },
-            data, other.data);
+        return std::visit([](auto v1, auto v2) { return Number{v1 + v2}; }, data, other.data);
     }
 
     const Number operator-(const Number& other) const {
-        return std::visit([](auto v1, auto v2) { return Number{v1 - v2}; },
-            data, other.data);
+        return std::visit([](auto v1, auto v2) { return Number{v1 - v2}; }, data, other.data);
     }
 
     const Number operator-() const {
@@ -44,28 +44,26 @@ class Number {
     }
 
     const Number operator*(const Number& other) const {
-        return std::visit([](auto v1, auto v2) { return Number{v1 * v2}; },
-            data, other.data);
+        return std::visit([](auto v1, auto v2) { return Number{v1 * v2}; }, data, other.data);
     }
 
     // Note: (long / long) => Rational in Lisp
     const Number operator/(const Number& other) const {
-        return std::visit([](auto v1, auto v2) { return Number{v1 / v2}; },
+        return std::visit([](auto v1, auto v2) { return Number{v1 / v2}; }, data, other.data);
+    }
+
+    const Number operator%(const Number& other) const {
+        return std::visit(
+            Visitor{[](long v1, long v2) { return Number{v1 % v2}; },
+                    [](auto, auto) -> Number { throw TypeError("exact", "inexact"); }},
             data, other.data);
     }
 
-    Number& operator+=(const Number& other) {
-        return *this = *this + other;
-    }
-    Number& operator-=(const Number& other) {
-        return *this = *this - other;
-    }
-    Number& operator*=(const Number& other) {
-        return *this = *this * other;
-    }
-    Number& operator/=(const Number& other) {
-        return *this = *this / other;
-    }
+    Number& operator+=(const Number& other) { return *this = *this + other; }
+    Number& operator-=(const Number& other) { return *this = *this - other; }
+    Number& operator*=(const Number& other) { return *this = *this * other; }
+    Number& operator/=(const Number& other) { return *this = *this / other; }
+    Number& operator%=(const Number& other) { return *this = *this % other; }
 
     bool operator==(const Number& other) const {
         return std::visit(
@@ -75,9 +73,7 @@ class Number {
                     [](auto v1, auto v2) { return v1 == v2; }},
             data, other.data);
     }
-    bool operator!=(const Number& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const Number& other) const { return !(*this == other); }
 
     bool operator<(const Number& other) const {
         return std::visit([](auto x, auto y) { return x < y; }, data, other.data);
@@ -92,8 +88,14 @@ class Number {
         return std::visit([](auto x, auto y) { return x >= y; }, data, other.data);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Number &num) {
+    friend std::ostream& operator<<(std::ostream& os, const Number& num) {
         return std::visit([&os](auto v) -> std::ostream& { return os << v; }, num.data);
+    }
+
+    Number abs() const {
+        return std::visit(Visitor{[](long v) -> Number { return labs(v); },
+                                  [](double v) -> Number { return fabs(v); }},
+                          data);
     }
 
     bool isExact() const { return std::holds_alternative<long>(data); }

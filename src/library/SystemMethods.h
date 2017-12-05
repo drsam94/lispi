@@ -6,6 +6,16 @@ class SystemMethods {
     static BuiltInFunc add;
     static BuiltInFunc sub;
     static BuiltInFunc mul;
+    static BuiltInFunc div;
+
+    static BuiltInFunc quotient;
+    static BuiltInFunc remainder;
+    static BuiltInFunc modulo;
+
+    static BuiltInFunc inc;
+    static BuiltInFunc dec;
+    static BuiltInFunc abs;
+
     static BuiltInFunc exactQ;
     static BuiltInFunc inexactQ;
     static BuiltInFunc eq;

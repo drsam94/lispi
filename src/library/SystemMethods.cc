@@ -8,6 +8,16 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("+", &SystemMethods::add);
     st.emplace("-", &SystemMethods::sub);
     st.emplace("*", &SystemMethods::mul);
+    //st.emplace("/", &SystemMethods::div);
+
+    st.emplace("quotient", &SystemMethods::quotient);
+    st.emplace("remainder", &SystemMethods::remainder);
+    st.emplace("modulo", &SystemMethods::modulo);
+
+    st.emplace("1+", &SystemMethods::inc);
+    st.emplace("-1+", &SystemMethods::dec);
+    st.emplace("abs", &SystemMethods::abs);
+
     st.emplace("=", &SystemMethods::eq);
     st.emplace("<", &SystemMethods::lt);
     st.emplace(">", &SystemMethods::gt);
@@ -56,6 +66,70 @@ Datum SystemMethods::mul(LispArgs args, SymbolTable& st) {
         util::foldr(args.begin(), args.end(), 1_N, [&st](const Datum& datum, const Number& number) {
             return number * Evaluator::getOrEvaluateE<Number>(datum, st);
         })}};
+}
+
+Datum SystemMethods::quotient(LispArgs args, SymbolTable& st) {
+    if (args.size() != 2) {
+        throw ArityError(2, args);
+    }
+    auto it = args.begin();
+    const Number& first  = Evaluator::getOrEvaluateE<Number>(*it++, st);
+    const Number& second = Evaluator::getOrEvaluateE<Number>(*it, st);
+    if (unlikely(!(first.isExact() && second.isExact()))) {
+        throw LispError("quotient arguments must be exact");
+    }
+    return {Atom{first / second}};
+}
+
+Datum SystemMethods::remainder(LispArgs args, SymbolTable& st) {
+    if (args.size() != 2) {
+        throw ArityError(2, args);
+    }
+    auto it = args.begin();
+    const Number& first  = Evaluator::getOrEvaluateE<Number>(*it++, st);
+    const Number& second = Evaluator::getOrEvaluateE<Number>(*it, st);
+    if (unlikely(!(first.isExact() && second.isExact()))) {
+        throw LispError("remainder arguments must be exact");
+    }
+    return {Atom{first % second}};
+}
+
+Datum SystemMethods::modulo(LispArgs args, SymbolTable& st) {
+    if (args.size() != 2) {
+        throw ArityError(2, args);
+    }
+    auto it = args.begin();
+    const Number& first  = Evaluator::getOrEvaluateE<Number>(*it++, st);
+    const Number& second = Evaluator::getOrEvaluateE<Number>(*it, st);
+    if (unlikely(!(first.isExact() && second.isExact()))) {
+        throw LispError("modulo arguments must be exact");
+    }
+    Number remainder = first % second;
+    if (first * second < 0_N) {
+        return {Atom{second + remainder}};
+    }
+    return {Atom{remainder}};
+}
+
+Datum SystemMethods::inc(LispArgs args, SymbolTable& st) {
+    if (args.size() != 1) {
+        throw LispError("1+ requires exactly 1 argument");
+    }
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st) + 1_N}};
+}
+
+Datum SystemMethods::dec(LispArgs args, SymbolTable& st) {
+    if (args.size() != 1) {
+        throw LispError("-1+ requires exactly 1 argument");
+    }
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st) - 1_N}};
+}
+
+Datum SystemMethods::abs(LispArgs args, SymbolTable& st) {
+    if (args.size() != 1) {
+        throw LispError("1+ requires exactly 1 argument");
+    }
+    return {Atom{Evaluator::getOrEvaluateE<Number>(*args.begin(), st).abs()}};
 }
 
 Datum SystemMethods::eq(LispArgs args, SymbolTable& st) {

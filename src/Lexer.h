@@ -3,11 +3,11 @@
 #include "util/Enum.h"
 #include "data/Token.h"
 
+#include <iostream>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include <iostream>
-
 /// The Lexer is responsible for converting the input text to a stream of tokens,
 /// which can either be accessed one at a time through ::next or all at once through
 /// getTokens()

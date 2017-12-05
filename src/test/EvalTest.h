@@ -89,5 +89,27 @@ class EvalTester {
 
         TS_ASSERT_EQ(eval("(= 1 (- 2 1) (* 1 1) (+ 0.5 0.5))"), Datum{Atom{true}});
         TS_ASSERT_EQ(eval("(< 1 2 3 (+ 4 5) (* 5 5))"), Datum{Atom{true}});
+
+        TS_ASSERT_EQ(evNum("(quotient 4 2)"), 2_N);
+        TS_ASSERT_EQ(evNum("(quotient 5 2)"), 2_N);
+        TS_ASSERT_EQ(evNum("(quotient 7 1)"), 7_N);
+        TS_ASSERT_EQ(evNum("(quotient 2 4)"), 0_N);
+        TS_ASSERT_EQ(evNum("(quotient 4 -2)"), -2_N);
+        TS_ASSERT_EQ(evNum("(quotient -4 2)"), -2_N);
+        TS_ASSERT_EQ(evNum("(remainder 4 2)"), 0_N);
+        TS_ASSERT_EQ(evNum("(modulo 4 2)"), 0_N);
+        TS_ASSERT_EQ(evNum("(remainder 7 2)"), 1_N);
+        TS_ASSERT_EQ(evNum("(remainder 7 -2)"), 1_N);
+        TS_ASSERT_EQ(evNum("(remainder -7 3)"), -1_N);
+        TS_ASSERT_EQ(evNum("(modulo -7 3)"), 2_N);
+        TS_ASSERT_EQ(evNum("(modulo 7 -3)"), -2_N);
+
+        // TODO: fix up the lexer to be able to support these
+        //TS_ASSERT_EQ(evNum("(1+ 1)"), 2_N);
+        //TS_ASSERT_EQ(evNum("(-1+ 2.5"), 1.5_N);
+        TS_ASSERT_EQ(evNum("(abs 5)"), 5_N);
+        TS_ASSERT_EQ(evNum("(abs -5)"), 5_N);
+        TS_ASSERT_EQ(evNum("(abs 5.5)"), 5.5_N);
+        TS_ASSERT_EQ(evNum("(abs -5.5)"), 5.5_N);
     }
 };
