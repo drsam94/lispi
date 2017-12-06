@@ -12,7 +12,7 @@
 #include <unistd.h>
 using namespace std;
 
-string_view getline() {
+std::pair<string_view, bool> getline() {
     static char* line = nullptr;
     if (line != nullptr) {
         free(line);
@@ -23,7 +23,7 @@ string_view getline() {
     if (line != nullptr && *line != '\0') {
         add_history(line);
     }
-    return line;
+    return {line, line == nullptr};
 }
 
 int main(int argc, char** argv) {
@@ -47,7 +47,10 @@ int main(int argc, char** argv) {
     vector<Token> tokens;
     do {
         try {
-            string_view inputLine = getline();
+            auto [inputLine, eof] = getline();
+            if (eof) {
+                exit(0);
+            }
             while (!inputLine.empty()) {
                 auto && [ token, modInput ] = lex.next(inputLine);
                 tokens.emplace_back(move(token));
