@@ -278,7 +278,8 @@ class ArityError : public LispError {
                     args) {}
 };
 
-using BuiltInFunc = Datum(LispArgs, SymbolTable&);
+class Evaluator;
+using BuiltInFunc = Datum(LispArgs, SymbolTable&, Evaluator&);
 using SpecialForm = BuiltInFunc*;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {

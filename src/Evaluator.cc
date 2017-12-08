@@ -73,7 +73,7 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
     if (sym) {
         const auto &scopeElem = scope[+*sym];
         if (std::holds_alternative<SpecialForm>(scopeElem)) {
-            return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope);
+            return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope, *this);
         }
 
         const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();

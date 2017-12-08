@@ -5,6 +5,7 @@
 // Includes definitions of all the Scheme special forms; these by their
 // nature must be implemtned in C++, they fundamentally cannot be implemented
 // within the language
+// TODO: add helpers for things like Unaryfunction and such
 class SpecialForms {
     // All special forms documented here; will be implemented as I get to them
     //static BuiltInFunc accessImpl;
