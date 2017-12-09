@@ -4,15 +4,39 @@
 #include "Evaluator.h"
 #include <iostream>
 
+// Alright, this is kind of complex and I am tired
+template<typename TupleT, BuiltInFunc* func>
+struct FixedArgsFunction {
+    static Datum operator() (ListpArgs args, SymbolTable& st, Evaluator& ev) {
+        size_t argSize = 0;
+        TupleT fwdArgs;
+        for (const Datum& datum : args) {
+            if (!datum.hasAtomicValue<ArgType>()) {
+                // need type<->str mapping
+                throw TypeError("Number", "Not Number");
+            }
+            ++argSize;
+        }
+        if (argSize != std::tuple_size_v<TupleT>) {
+            throw ArityError(N, args);
+        }
+        return func(args, st, ev);
+    }
+
+    static void insert(SymbolTable& st, string_view s) {
+        st.emplace(s, &FixedArityFunction::operator());
+    }
+};
+
 void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("+", &SystemMethods::add);
     st.emplace("-", &SystemMethods::sub);
     st.emplace("*", &SystemMethods::mul);
     //st.emplace("/", &SystemMethods::div);
 
-    st.emplace("quotient", &SystemMethods::quotient);
-    st.emplace("remainder", &SystemMethods::remainder);
-    st.emplace("modulo", &SystemMethods::modulo);
+    FixedArityFunction<2, &SystemMethods::quotient>::insert(st, "quotient");
+    FixedArityFunction<2, &SystemMethods::remainder>::insert(st, "remainder");
+    FixedArityFunction<2, &SystemMethods::quotient>::insert(st, "modulo");
 
     st.emplace("1+", &SystemMethods::inc);
     st.emplace("-1+", &SystemMethods::dec);
@@ -69,9 +93,6 @@ Datum SystemMethods::mul(LispArgs args, SymbolTable& st, Evaluator& ev) {
 }
 
 Datum SystemMethods::quotient(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 2) {
-        throw ArityError(2, args);
-    }
     auto it = args.begin();
     const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
     const Number& second = ev.getOrEvaluateE<Number>(*it, st);
@@ -82,9 +103,6 @@ Datum SystemMethods::quotient(LispArgs args, SymbolTable& st, Evaluator& ev) {
 }
 
 Datum SystemMethods::remainder(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 2) {
-        throw ArityError(2, args);
-    }
     auto it = args.begin();
     const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
     const Number& second = ev.getOrEvaluateE<Number>(*it, st);
@@ -95,9 +113,6 @@ Datum SystemMethods::remainder(LispArgs args, SymbolTable& st, Evaluator& ev) {
 }
 
 Datum SystemMethods::modulo(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 2) {
-        throw ArityError(2, args);
-    }
     auto it = args.begin();
     const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
     const Number& second = ev.getOrEvaluateE<Number>(*it, st);
