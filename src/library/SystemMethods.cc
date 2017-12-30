@@ -5,7 +5,6 @@
 #include <iostream>
 #include <utility>
 
-// Alright, this is kind of complex and I am tired
 template<BuiltInFunc func, typename... TypePack>
 class FixedArityFunction {
     using TupleT = std::tuple<TypePack...>;
