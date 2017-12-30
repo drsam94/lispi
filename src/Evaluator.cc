@@ -68,9 +68,6 @@ Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
             return computeArg(func.definition->car, *funcScope);
         } else {
             ret = eval(func.definition, *funcScope);
-            if (!ret) {
-                currArgs = std::move(argsToTailRecurse);
-            }
         }
     }
     return ret;
@@ -85,20 +82,11 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
             return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope, *this);
         }
 
-        if (&scopeElem == currentFunction) {
-            // There are probably corner cases where this won't work
-            argsToTailRecurse = LispArgs(expr->cdr.getSExpr());
-            return std::nullopt;
-        }
         const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
         if (!func) {
             throw LispError("Can't find function ", *sym);
         }
 
-        ScopeGuard guard{[this, cf = currentFunction] {
-            this->currentFunction = cf;
-        }};
-        currentFunction = &scopeElem;
         return evalFunction(*func, expr->cdr.getSExpr(), scope);
     }
 

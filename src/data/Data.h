@@ -93,6 +93,10 @@ class Datum {
         }
         return atom.get<T>();
     }
+    template<typename T>
+    bool hasAtomicValue() const {
+        return isAtomic() && std::get<Atom>(data).contains<T>();
+    }
 
     const SExprPtr& getSExpr() const {
         if (std::holds_alternative<SExprPtr>(data)) {
@@ -156,6 +160,13 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
         iterator(SExprPtr _curr) : curr{_curr} {}
 
       public:
+        // For std::iterator_traits
+        using difference_type = std::ptrdiff_t;
+        using value_type      = Datum;
+        using pointer         = Datum*;
+        using reference       = Datum&;
+        using iterator_category = std::forward_iterator_tag;
+
         Datum& operator*() { return curr->car; }
         Datum* operator->() { return &curr->car; }
         // preincrement
@@ -163,7 +174,7 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
             curr = curr->cdr.getSExpr();
             return *this;
         }
-        // postincrement
+        // postincremen
         iterator operator++(int) {
             iterator copy{*this};
             ++(*this);
@@ -186,6 +197,13 @@ struct SExpr : std::enable_shared_from_this<SExpr> {
         const_iterator(std::shared_ptr<const SExpr> _curr) : curr{_curr} {}
 
       public:
+        // For std::iterator_traits
+        using difference_type = std::ptrdiff_t;
+        using value_type      = Datum;
+        using pointer         = const Datum*;
+        using reference       = const Datum&;
+        using iterator_category = std::forward_iterator_tag;
+
         const Datum& operator*() { return curr->car; }
         const Datum* operator->() { return &curr->car; }
         // preincrement
@@ -273,9 +291,8 @@ class LispArgs {
 
 class ArityError : public LispError {
   public:
-    ArityError(size_t expected, const LispArgs& args)
-        : LispError("ArityError: expected", expected, " arguments, found ", args.size(), ": ",
-                    args) {}
+    ArityError(size_t expected, size_t actual)
+        : LispError("ArityError: expected", expected, " arguments, found ", actual, ": ") {}
 };
 
 class Evaluator;

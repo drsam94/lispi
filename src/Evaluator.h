@@ -5,9 +5,7 @@
 #include <memory>
 class Evaluator {
     std::shared_ptr<SymbolTable> globalScope;
-    const SymbolTable::value_type* currentFunction = nullptr;
-    LispArgs argsToTailRecurse{};
-    // TODO: add state for keeping track of tail recursion
+
   public:
     /// If the given datum is atomic, get the value of the desired type (if it
     /// exists) otherwise, recursively evaluate until we return something of the

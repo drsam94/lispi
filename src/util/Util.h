@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <type_traits>
+#include <utility>
 // Random utilities that don't have logical places to go
 // Probaby should be broken into files once it gets large enough
 //
@@ -53,7 +54,8 @@ std::string stringConcat(Ts&&... args) {
     return ss.str();
 }
 
-// std::algorithm type utility functions
+// utilities that are extensions of namespace std in some way, i.e like std algorithms
+// or utilities on top of things in the standard library
 namespace util {
 template<typename ForwardIterator,
          typename Functor,
@@ -89,4 +91,16 @@ IntegralT binSearch(SearchFunction search) {
     }
     return low;
 }
+
+// Utilities for interacting with an index sequence in a lisp car/cdr
+// type way
+template<size_t I, size_t...>
+constexpr size_t index_sequence_head_v = I;
+
+template<size_t, size_t... Is>
+struct index_sequence_tail {
+    using type = std::index_sequence<Is...>;
+};
+template<size_t... Is>
+using index_sequence_tail_t = typename index_sequence_tail<Is...>::type;
 }

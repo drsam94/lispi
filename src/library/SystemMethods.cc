@@ -3,28 +3,41 @@
 #include "data/Data.h"
 #include "Evaluator.h"
 #include <iostream>
+#include <utility>
 
 // Alright, this is kind of complex and I am tired
-template<typename TupleT, BuiltInFunc* func>
-struct FixedArgsFunction {
-    static Datum operator() (ListpArgs args, SymbolTable& st, Evaluator& ev) {
-        size_t argSize = 0;
+template<BuiltInFunc func, typename... TypePack>
+class FixedArityFunction {
+    using TupleT = std::tuple<TypePack...>;
+    static constexpr size_t Arity = std::tuple_size_v<TupleT>;
+    static Datum apply(LispArgs args, SymbolTable& st, Evaluator& ev) {
         TupleT fwdArgs;
-        for (const Datum& datum : args) {
-            if (!datum.hasAtomicValue<ArgType>()) {
-                // need type<->str mapping
-                throw TypeError("Number", "Not Number");
-            }
-            ++argSize;
-        }
-        if (argSize != std::tuple_size_v<TupleT>) {
-            throw ArityError(N, args);
-        }
-        return func(args, st, ev);
+        validateArgs(args.begin(), args.end());
+        return func(std::move(args), st, ev);
     }
 
-    static void insert(SymbolTable& st, string_view s) {
-        st.emplace(s, &FixedArityFunction::operator());
+    template<typename FwdIterator>
+    static void validateArgs(FwdIterator start, FwdIterator end) {
+        validateArgsImpl(start, end, std::make_index_sequence<Arity>{});
+    }
+
+    template<typename FwdIterator, size_t... Is>
+    static void validateArgsImpl(FwdIterator start, FwdIterator end, std::index_sequence<Is...>) {
+        if constexpr (sizeof...(Is) == 0) {
+            if (start != end) {
+                throw ArityError(Arity + static_cast<size_t>(std::distance(start, end)), Arity);
+            }
+        } else {
+            if (!start->template hasAtomicValue<std::tuple_element_t<util::index_sequence_head_v<Is...>, TupleT>>()) {
+                // need some sort of type string mapping
+                throw TypeError("Something", "Not that");
+            }
+            validateArgsImpl(++start, end, util::index_sequence_tail_t<Is...>{});
+        }
+    }
+  public:
+    static void insert(SymbolTable& st, const std::string& s) {
+        st.emplace(s, &FixedArityFunction::apply);
     }
 };
 
@@ -34,9 +47,9 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("*", &SystemMethods::mul);
     //st.emplace("/", &SystemMethods::div);
 
-    FixedArityFunction<2, &SystemMethods::quotient>::insert(st, "quotient");
-    FixedArityFunction<2, &SystemMethods::remainder>::insert(st, "remainder");
-    FixedArityFunction<2, &SystemMethods::quotient>::insert(st, "modulo");
+    FixedArityFunction<SystemMethods::quotient, Number, Number>::insert(st, "quotient");
+    FixedArityFunction<SystemMethods::remainder, Number, Number>::insert(st, "remainder");
+    FixedArityFunction<SystemMethods::modulo, Number, Number>::insert(st, "modulo");
 
     st.emplace("1+", &SystemMethods::inc);
     st.emplace("-1+", &SystemMethods::dec);
