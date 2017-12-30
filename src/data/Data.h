@@ -234,29 +234,29 @@ class LispArgs {
     LispArgs(LispArgs&& other) : ptr{other.ptr} {
         other.ptr = nullptr;
     }
-    LispArgs& operator==(LispArgs&& other) {
+    LispArgs& operator=(LispArgs&& other) {
         ptr = other.ptr;
         other.ptr = nullptr;
         return *this;
     }
 
-    auto begin() {
+    SExpr::iterator begin() {
         if (ptr == nullptr) {
-            return SExpr::iterator{nullptr};
+            return {nullptr};
         } else {
             return ptr->begin();
         }
     }
-    auto end() { return SExpr::iterator{nullptr}; }
+    SExpr::iterator end() { return {nullptr}; }
 
-    auto begin() const {
+    SExpr::const_iterator begin() const {
         if (ptr == nullptr) {
-            return SExpr::const_iterator{nullptr};
+            return {nullptr};
         } else {
             return static_cast<const SExpr*>(ptr)->begin();
         }
     }
-    auto end() const { return SExpr::const_iterator{nullptr}; }
+    SExpr::const_iterator end() const { return {nullptr}; }
 
     bool empty() const { return ptr == nullptr; }
 
@@ -288,19 +288,18 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
     std::shared_ptr<SymbolTable> parent;
 
   public:
+    using value_type = std::variant<Datum, SpecialForm>;
     explicit SymbolTable(const std::shared_ptr<SymbolTable>& p)
         : parent{p} {}
-    std::variant<Datum, SpecialForm>& operator[](const std::string& s);
-    std::variant<Datum, SpecialForm>& get(const Symbol& s);
-    std::variant<Datum, SpecialForm>& get(const Atom& datum);
+    value_type& operator[](const std::string& s);
+    value_type& get(const Symbol& s);
+    value_type& get(const Atom& datum);
 
-    std::variant<Datum, SpecialForm>& emplace(const std::string& s,
-                                              const Datum& datum) {
+    value_type& emplace(const std::string& s, const Datum& datum) {
         return table.emplace(s, datum).first->second;
     }
 
-    std::variant<Datum, SpecialForm>& emplace(const std::string& s,
-                                              SpecialForm form) {
+    value_type& emplace(const std::string& s, SpecialForm form) {
         return table.emplace(s, form).first->second;
     }
 

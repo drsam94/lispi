@@ -5,6 +5,8 @@
 #include <memory>
 class Evaluator {
     std::shared_ptr<SymbolTable> globalScope;
+    const SymbolTable::value_type* currentFunction = nullptr;
+    LispArgs argsToTailRecurse{};
     // TODO: add state for keeping track of tail recursion
   public:
     /// If the given datum is atomic, get the value of the desired type (if it
@@ -29,7 +31,10 @@ class Evaluator {
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
     Evaluator();
-
+    Evaluator(const Evaluator&) = delete;
+    Evaluator(Evaluator&&) = delete;
+    Evaluator operator=(const Evaluator&) = delete;
+    Evaluator operator==(Evaluator&&) = delete;
     /// Main public interface: evaluates an expression in a given scope
     std::optional<Datum> eval(const SExprPtr& expr, SymbolTable& scope);
     std::optional<Datum> eval(const SExprPtr& expr) {
