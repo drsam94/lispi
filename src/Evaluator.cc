@@ -42,29 +42,38 @@ Datum Evaluator::computeArg(const Datum& datum, SymbolTable& st) {
 std::optional<Datum>
 Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
                         SymbolTable& scope) {
-    // TODO: some dialects of lisp support optional and variadic parameters...
-    if (func.formalParameters.size() != args->size()) {
-        return std::nullopt;
-    }
-    auto formalIt = func.formalParameters.begin();
-    auto actualIt = args->begin();
-    auto funcScope = func.funcScope();
-    for (; formalIt != func.formalParameters.end() && actualIt != args->end();
-        ++formalIt, ++actualIt) {
-        Datum result = computeArg(*actualIt, scope);
-        funcScope->emplace(+*formalIt, result);
-    }
-    if (func.definition->cdr.getSExpr() == nullptr) {
-        // Workaround to support things like lambda (x) x...this is probably not
-        // fully compliant with the spec
-        auto sym = func.definition->car.getAtomicValue<Symbol>();
-        if (sym) {
-            return std::get<Datum>(funcScope->get(*sym));
+    std::optional<Datum> ret = std::nullopt;
+    LispArgs currArgs{args};
+    while (!ret) {
+        // TODO: some dialects of lisp support optional and variadic parameters...
+        if (func.formalParameters.size() != args->size()) {
+            return std::nullopt;
         }
-        return computeArg(func.definition->car, *funcScope);
-    } else {
-        return eval(func.definition, *funcScope);
+        auto formalIt = func.formalParameters.begin();
+        auto actualIt = args->begin();
+        auto funcScope = func.funcScope();
+        for (; formalIt != func.formalParameters.end() && actualIt != args->end();
+            ++formalIt, ++actualIt) {
+            Datum result = computeArg(*actualIt, scope);
+            funcScope->emplace(+*formalIt, result);
+        }
+
+        if (func.definition->cdr.getSExpr() == nullptr) {
+            // Workaround to support things like lambda (x) x...this is probably not
+            // fully compliant with the spec
+            auto sym = func.definition->car.getAtomicValue<Symbol>();
+            if (sym) {
+                return std::get<Datum>(funcScope->get(*sym));
+            }
+            return computeArg(func.definition->car, *funcScope);
+        } else {
+            ret = eval(func.definition, *funcScope);
+            if (!ret) {
+                currArgs = std::move(argsToTailRecurse);
+            }
+        }
     }
+    return ret;
 }
 
 std::optional<Datum>
@@ -76,26 +85,35 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
             return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope, *this);
         }
 
-        const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
-        if (!func) {
+        if (&scopeElem == currentFunction) {
+            // There are probably corner cases where this won't work
+            argsToTailRecurse = LispArgs(expr->cdr.getSExpr());
             return std::nullopt;
         }
+        const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
+        if (!func) {
+            throw LispError("Can't find function ", *sym);
+        }
 
+        ScopeGuard guard{[this, cf = currentFunction] {
+            this->currentFunction = cf;
+        }};
+        currentFunction = &scopeElem;
         return evalFunction(*func, expr->cdr.getSExpr(), scope);
     }
 
     if (!expr->car.isAtomic()) {
         const auto &carFunc = eval(expr->car.getSExpr(), scope);
         if (!carFunc) {
-            return std::nullopt;
+            throw LispError("Can't evaluate non function");
         }
         const auto &func = carFunc->getAtomicValue<LispFunction>();
         if (!func) {
-            return std::nullopt;
+            throw LispError("Can't evaluate non function");
         }
 
         return evalFunction(*func, expr->cdr.getSExpr(), scope);
     } else {
-        return std::nullopt;
+        throw LispError("Can't evaluate non function");
     }
 }

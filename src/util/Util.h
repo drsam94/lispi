@@ -5,7 +5,8 @@
 #include <sstream>
 #include <type_traits>
 // Random utilities that don't have logical places to go
-
+// Probaby should be broken into files once it gets large enough
+//
 // RAII file class
 class FileOpen {
   private:
@@ -32,6 +33,16 @@ namespace std {
 template<class... Ts>
 struct Visitor : Ts... { using Ts::operator()...; };
 template<class... Ts> Visitor(Ts...) -> Visitor<Ts...>;
+
+// A scopeguard, better than traditional macro or function implementations due to
+// C++17 class template parameter deduction
+template<class Functor>
+class ScopeGuard {
+    Functor f;
+  public:
+    explicit ScopeGuard(Functor&& func) : f(std::move(func)) {}
+    ~ScopeGuard() { f(); }
+};
 
 // Note: this is probably really slow (when compared to optimized solutions like
 // absl::strcat), but it isn't used in very performance sensitive places.
