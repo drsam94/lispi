@@ -28,7 +28,7 @@ class SpecialForms {
     static BuiltInFunc ifImpl;
     //static BuiltInFunc letSImpl;
     //static BuiltInFunc letrecImpl;
-    //static BuiltInFunc namedLambdaImpl;
+    static BuiltInFunc namedLambdaImpl;
     //static BuiltinFunc quasiquoteImpl;
     //static BuiltInFunc scMacroTransformer;
     //static BuiltInFunc theEnvironmentImpl;

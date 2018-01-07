@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
             auto expr = parser.parse(tokens);
             while (expr) {
                 auto result = evaluator.eval(*expr);
-                cout << *result << endl;
+                cout << result << endl;
                 expr = parser.parse(tokens);
             }
         } catch (const LispError& err) {

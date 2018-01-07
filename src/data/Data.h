@@ -39,24 +39,21 @@ class LispFunction {
     std::vector<Symbol> formalParameters;
     SExprPtr definition;
     LispFunction(std::vector<Symbol>&& formals, const SExprPtr& defn,
-        SymbolTable& scope, bool isClosure);
+        SymbolTable& scope);
 
     std::shared_ptr<SymbolTable> funcScope() const;
   private:
-    // This should be a shared_ptr for lambdas (closures), but shouldn't
-    // be for normal functions (e.g) define: having this be a shared_ptr for
-    // functions that are (define)'d leads to a cycle, and the SymbolTables
-    // can't be garbage collected. Solution: functions should have a raw (non-owning)
-    // pointer to their enclosing scope, while closures have a shared_ptr, as the
-    // closure may need to otherwise outlast the scope
-    std::variant<std::shared_ptr<SymbolTable>, SymbolTable*> defnScope;
+    // We maintain a weak ptr; if this is a closure, then we should maintain an
+    // aliased shared ptr to the LispFunction which has a reference count based
+    // on the the parent table
+    std::weak_ptr<SymbolTable> defnScope;
 };
 
 
 // An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
 class Atom {
     std::variant<std::monostate, Number, bool,
-                 std::string, Symbol, LispFunction> data{};
+                 std::string, Symbol, std::shared_ptr<LispFunction>> data{};
   public:
     Atom() = default;
     template <typename T, typename = std::enable_if_t<
@@ -137,6 +134,15 @@ class Datum {
     friend std::ostream &operator<<(std::ostream& os, const Datum& datum);
 
     bool operator==(const Datum& other) const;
+
+    static Datum True() {
+        return {Atom{true}};
+    }
+
+    static Datum False() {
+        return {Atom{false}};
+    }
+
 };
 
 // An SExpr/cons cell/pair
@@ -295,17 +301,40 @@ class ArityError : public LispError {
         : LispError("ArityError: expected", expected, " arguments, found ", actual, ": ") {}
 };
 
+
+struct FunctionCall {
+    std::shared_ptr<LispFunction>(func);
+    LispArgs     args;
+    SymbolTable* scope;
+
+    FunctionCall(const std::shared_ptr<LispFunction>& f, LispArgs a, SymbolTable& s) : func(f), args(std::move(a)), scope(&s) {}
+    FunctionCall(const FunctionCall&) = delete;
+    FunctionCall& operator=(const FunctionCall&) = delete;
+    FunctionCall(FunctionCall&& other) : func(std::move(other.func)), args(std::move(other.args)), scope(other.scope) {}
+    FunctionCall& operator=(FunctionCall&& other) {
+        func = std::move(other.func);
+        args = std::move(other.args);
+        scope = other.scope;
+        return *this;
+    }
+};
+using EvalResult = std::variant<Datum, FunctionCall>;
+
 class Evaluator;
-using BuiltInFunc = Datum(LispArgs, SymbolTable&, Evaluator&);
+// TODO separate BuiltInFunc and specialform; only SpecialForms can return an EvalResult,
+// BuiltInFuncs should return Datum
+using BuiltInFunc = EvalResult(LispArgs, SymbolTable&, Evaluator&);
 using SpecialForm = BuiltInFunc*;
 
 class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
+  public:
+    using value_type = std::variant<Datum, SpecialForm, LispFunction>;
   private:
-    std::unordered_map<std::string, std::variant<Datum, SpecialForm>> table{};
+    std::unordered_map<std::string, value_type> table{};
     std::shared_ptr<SymbolTable> parent;
 
+    static inline size_t anonLambdaCount = 0;
   public:
-    using value_type = std::variant<Datum, SpecialForm>;
     explicit SymbolTable(const std::shared_ptr<SymbolTable>& p)
         : parent{p} {}
     value_type& operator[](const std::string& s);
@@ -318,6 +347,17 @@ class SymbolTable : public std::enable_shared_from_this<SymbolTable> {
 
     value_type& emplace(const std::string& s, SpecialForm form) {
         return table.emplace(s, form).first->second;
+    }
+
+    value_type& emplace(const std::string& s, const LispFunction& func) {
+        return table.emplace(s, func).first->second;
+    }
+
+    value_type& emplaceAnon(const LispFunction& func) {
+        std::string anonName = std::to_string(anonLambdaCount);
+        anonName.push_back('\x01');
+        ++anonLambdaCount;
+        return emplace(anonName, func);
     }
 
     std::shared_ptr<SymbolTable> makeChild() {

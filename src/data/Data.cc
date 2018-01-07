@@ -2,23 +2,13 @@
 
 LispFunction::LispFunction(std::vector<Symbol> &&formals,
                            const SExprPtr& defn,
-                           SymbolTable& scope,
-                           bool isClosure)
+                           SymbolTable& scope)
     : formalParameters(std::move(formals)), definition(defn),
-        defnScope{} {
-
-    if (isClosure) {
-        defnScope = scope.shared_from_this();
-    } else {
-        defnScope = &scope;
-    }
+        defnScope{scope.shared_from_this()} {
 }
 
 std::shared_ptr<SymbolTable> LispFunction::funcScope() const {
-    return std::visit(Visitor {
-        [](const std::shared_ptr<SymbolTable>& st) { return st.get(); },
-        [](SymbolTable* st) { return st; }
-    }, defnScope)->makeChild();
+    return defnScope.lock()->makeChild();
 }
 
 std::ostream& operator<<(std::ostream& os, const Atom& atom) {
@@ -68,7 +58,7 @@ bool Datum::operator==(const Datum& other) const {
         data, other.data);
 }
 
-std::variant<Datum, SpecialForm>& SymbolTable::
+SymbolTable::value_type& SymbolTable::
 operator[](const std::string& s) {
     if (auto it = table.find(s); it == table.end()) {
         if (unlikely(parent == nullptr)) {
@@ -81,10 +71,10 @@ operator[](const std::string& s) {
     }
 }
 
-std::variant<Datum, SpecialForm>& SymbolTable::get(const Symbol& s) {
+SymbolTable::value_type& SymbolTable::get(const Symbol& s) {
     return (*this)[+s];
 }
 
-std::variant<Datum, SpecialForm>& SymbolTable::get(const Atom& atom) {
+SymbolTable::value_type& SymbolTable::get(const Atom& atom) {
     return (*this)[+atom.get<Symbol>()];
 }

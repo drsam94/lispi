@@ -4,6 +4,7 @@
 
 void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("lambda", &SpecialForms::lambdaImpl);
+    st.emplace("named-lambda", &SpecialForms::namedLambdaImpl);
     st.emplace("if", &SpecialForms::ifImpl);
     st.emplace("define", &SpecialForms::defineImpl);
     st.emplace("quote", &SpecialForms::quoteImpl);
@@ -12,7 +13,6 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("begin", &SpecialForms::beginImpl);
     st.emplace("cond", &SpecialForms::condImpl);
 }
-
 
 std::pair<std::vector<Symbol>, Datum> parseFuncDefn(LispArgs args) {
     std::vector<Symbol> formals;
@@ -40,34 +40,29 @@ std::pair<std::vector<Symbol>, Datum> parseFuncDefn(LispArgs args) {
     return {formals, *++inputIt};
 }
 
-Datum SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st, Evaluator&) {
+EvalResult SpecialForms::lambdaImpl(LispArgs args, SymbolTable& st, Evaluator&) {
     auto[formals, defn] = parseFuncDefn(std::move(args));
     SExprPtr impl =
         defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
-    return {Atom{LispFunction{std::move(formals), std::move(impl), st, true}}};
+    auto &elem = st.emplaceAnon(LispFunction{std::move(formals), std::move(impl), st});
+    return Datum{Atom{std::shared_ptr<LispFunction>(st.shared_from_this(), &std::get<LispFunction>(elem))}};
 }
-// TODO: how to do named lambda? We don't want to add a new child scope; so we probably need to
-// connect the name with the scope, but we don't want to have a circular referenct with the
-// function referring to a scope the scope referring to the funciton. Should each scope have
-// a notion of "enclosing function name" (empty for non-function based scopes) to aid with
-// tail recursion or something? hmm...interesting stuff
-#if 0
-Datum SpecialForms::namedlLambdaImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    auto[formals, defn] = parseFuncDefn(args, st);
+
+EvalResult SpecialForms::namedLambdaImpl(LispArgs args, SymbolTable& st, Evaluator&) {
+    auto[formals, defn] = parseFuncDefn(std::move(args));
     if (formals.empty()) {
-        throw Error("Named lambda must have name");
+        throw LispError("Named lambda must have name");
     }
     Symbol funName = std::move(*formals.begin());
     formals.erase(formals.begin());
 
     SExprPtr impl =
         defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
-
-    return {Atom{LispFunction{std::move(formals), std::move(impl), st, true}}};
+    auto &elem = st.emplace(+funName, LispFunction{std::move(formals), std::move(impl), st});
+    return Datum{Atom{std::shared_ptr<LispFunction>(st.shared_from_this(), &std::get<LispFunction>(elem))}};
 }
-#endif
 
-Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+EvalResult SpecialForms::defineImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     auto inputIt = args.begin();
     if (inputIt->isAtomic()) {
         // We are defining a constant
@@ -76,12 +71,9 @@ Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
             throw LispError("Name ", *inputIt, " is not an identifier");
         }
         ++inputIt;
-        std::optional<Datum> value = ev.eval(inputIt->getSExpr(), st);
-        if (!value) {
-            throw LispError("Invalid variable definition ", *inputIt);
-        }
-        st.emplace(+*varName, *value);
-        return {};
+        Datum value = ev.evalDatum(inputIt->getSExpr(), st);
+        st.emplace(+*varName, value);
+        return Datum{};
     }
     auto [formals, defn] = parseFuncDefn(std::move(args));
     if (formals.empty()) {
@@ -92,12 +84,11 @@ Datum SpecialForms::defineImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
 
     SExprPtr impl =
         defn.isAtomic() ? std::make_shared<SExpr>(defn.getAtom()) : defn.getSExpr();
-    st.emplace(+funName,
-               Datum{Atom{LispFunction{std::move(formals), std::move(impl), st, false}}});
-    return {};
+    st.emplace(+funName, LispFunction{std::move(formals), std::move(impl), st});
+    return Datum{};
 }
 
-Datum SpecialForms::ifImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+EvalResult SpecialForms::ifImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     if (args.size() != 3) {
         throw LispError("if takes 3 arguments, found ", args.size());
     }
@@ -107,19 +98,19 @@ Datum SpecialForms::ifImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     if (!cond.isTrue()) {
         ++inputIt;
     }
-    return ev.computeArg(*inputIt, st);
+    return ev.computeArgResult(*inputIt, st);
 }
 
-Datum SpecialForms::quoteImpl(LispArgs args, SymbolTable&, Evaluator&) {
+EvalResult SpecialForms::quoteImpl(LispArgs args, SymbolTable&, Evaluator&) {
     if (args.size() != 1) {
         throw LispError("quote requires exactly one argument");
     }
     return Datum{args.begin()->getSExpr()};
 }
 
-Datum SpecialForms::andImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+EvalResult SpecialForms::andImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     if (args.empty()) {
-        return {Atom{true}};
+        return Datum{Atom{true}};
     }
     Datum ret;
     for (const Datum& datum : args) {
@@ -131,9 +122,9 @@ Datum SpecialForms::andImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     return ret;
 }
 
-Datum SpecialForms::orImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+EvalResult SpecialForms::orImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     if (args.empty()) {
-        return {Atom{false}};
+        return Datum{Atom{false}};
     }
     Datum ret;
     for (const Datum& datum : args) {
@@ -145,15 +136,15 @@ Datum SpecialForms::orImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     return ret;
 }
 
-Datum SpecialForms::beginImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    Datum ret;
+EvalResult SpecialForms::beginImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+    EvalResult ret;
     for (const Datum& datum : args) {
-        ret = ev.computeArg(datum, st);
+        ret = ev.computeArgResult(datum, st);
     }
     return ret;
 }
 
-Datum SpecialForms::condImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+EvalResult SpecialForms::condImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
     for (const Datum& datum : args) {
         if (unlikely(datum.isAtomic())) {
             throw LispError("Condition clauses must be pairs");
@@ -165,5 +156,5 @@ Datum SpecialForms::condImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
         }
     }
     // ret value unspecified if all conds false and no else
-    return {};
+    return Datum{};
 }

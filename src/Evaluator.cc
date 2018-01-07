@@ -16,13 +16,13 @@ Evaluator::Evaluator() : globalScope(std::make_shared<SymbolTable>(nullptr)) {
     globalScope->emplace("#f", Datum{Atom{false}});
 }
 
-Datum Evaluator::computeArg(const Datum& datum, SymbolTable& st) {
+EvalResult Evaluator::computeArgResult(const Datum& datum, SymbolTable& st) {
     if (datum.isAtomic()) {
         const Atom& val = datum.getAtom();
         if (val.contains<Symbol>()) {
             // Note: this is where we need the SpecialForm/BuiltinFunc distinction;
             // this should be able to return, e.g "+", but not "if"
-            return computeArg(std::get<Datum>(st.get(val)), st);
+            return computeArgResult(std::get<Datum>(st.get(val)), st);
         }
         return Datum{val};
     } else {
@@ -30,77 +30,82 @@ Datum Evaluator::computeArg(const Datum& datum, SymbolTable& st) {
         if (expr == nullptr) {
             return Datum{expr};
         } else {
-            std::optional<Datum> ret = eval(expr, st);
-            if (!ret) {
-                throw LispError("Failed to evaluate argument");
-            }
-            return *ret;
+            return eval(expr, st);
         }
     }
 }
 
-std::optional<Datum>
-Evaluator::evalFunction(const LispFunction& func, const SExprPtr& args,
+Datum
+Evaluator::evalFunction(const std::shared_ptr<LispFunction>& func, const SExprPtr& args,
                         SymbolTable& scope) {
-    std::optional<Datum> ret = std::nullopt;
-    LispArgs currArgs{args};
-    while (!ret) {
-        // TODO: some dialects of lisp support optional and variadic parameters...
-        if (func.formalParameters.size() != args->size()) {
-            return std::nullopt;
-        }
-        auto formalIt = func.formalParameters.begin();
-        auto actualIt = args->begin();
-        auto funcScope = func.funcScope();
-        for (; formalIt != func.formalParameters.end() && actualIt != args->end();
+    if (func->formalParameters.size() != args->size()) {
+        throw ArityError(func->formalParameters.size(), args->size());
+    }
+    return evalFunction(FunctionCall{func, LispArgs{args}, scope});
+}
+
+Datum Evaluator::evalFunction(const FunctionCall &fc) {
+    const FunctionCall *call = &fc;
+    EvalResult result;
+    std::shared_ptr<SymbolTable> origFuncScope = call->func->funcScope();
+    while (true) {
+        auto formalIt = call->func->formalParameters.begin();
+        auto actualIt = call->args.begin();
+        std::shared_ptr<SymbolTable> funcScope = &call->func == &fc.func ? origFuncScope : call->func->funcScope();
+
+        for (; formalIt != call->func->formalParameters.end() && actualIt != call->args.end();
             ++formalIt, ++actualIt) {
-            Datum result = computeArg(*actualIt, scope);
-            funcScope->emplace(+*formalIt, result);
+            Datum argResult = computeArg(*actualIt, *call->scope);
+            funcScope->emplace(+*formalIt, argResult);
         }
 
-        if (func.definition->cdr.getSExpr() == nullptr) {
+        if (call->func->definition->cdr.getSExpr() == nullptr) {
             // Workaround to support things like lambda (x) x...this is probably not
             // fully compliant with the spec
-            auto sym = func.definition->car.getAtomicValue<Symbol>();
+            auto sym = call->func->definition->car.getAtomicValue<Symbol>();
             if (sym) {
                 return std::get<Datum>(funcScope->get(*sym));
             }
-            return computeArg(func.definition->car, *funcScope);
+            return computeArg(call->func->definition->car, *funcScope);
         } else {
-            ret = eval(func.definition, *funcScope);
+            result = eval(call->func->definition, *funcScope);
+            if (std::holds_alternative<Datum>(result)) {
+                return std::get<Datum>(result);
+            }
+            call = &std::get<FunctionCall>(result);
         }
     }
-    return ret;
 }
 
-std::optional<Datum>
+EvalResult
 Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
     auto sym = expr->car.getAtomicValue<Symbol>();
     if (sym) {
-        const auto &scopeElem = scope[+*sym];
-        if (std::holds_alternative<SpecialForm>(scopeElem)) {
-            return std::get<SpecialForm>(scopeElem)(expr->cdr.getSExpr(), scope, *this);
-        }
-
-        const auto &func = std::get<Datum>(scopeElem).getAtomicValue<LispFunction>();
-        if (!func) {
-            throw LispError("Can't find function ", *sym);
-        }
-
-        return evalFunction(*func, expr->cdr.getSExpr(), scope);
+        return std::visit(Visitor {
+            [&](SpecialForm sf) -> EvalResult { return sf(expr->cdr.getSExpr(), scope, *this); },
+            [&](LispFunction& lf) -> EvalResult { return FunctionCall{
+                std::shared_ptr<LispFunction>(scope.shared_from_this(), &lf),
+                LispArgs{expr->cdr.getSExpr()}, scope};
+            },
+            [&](const Datum& datum) -> EvalResult {
+                const auto& func = datum.getAtomicValue<std::shared_ptr<LispFunction>>();
+                if (!func) { throw LispError("Can't find function ", *sym); }
+                else { return FunctionCall{*func, LispArgs{expr->cdr.getSExpr()}, scope}; }
+            }
+        }, scope[+*sym]);
     }
 
     if (!expr->car.isAtomic()) {
-        const auto &carFunc = eval(expr->car.getSExpr(), scope);
-        if (!carFunc) {
-            throw LispError("Can't evaluate non function");
-        }
-        const auto &func = carFunc->getAtomicValue<LispFunction>();
+        const Datum& carFunc = std::visit(Visitor{
+            [this](const Datum& d) { return d; },
+            [this](const FunctionCall& f) { return evalFunction(f); }
+        }, eval(expr->car.getSExpr(), scope));
+        const auto& func = carFunc.getAtomicValue<std::shared_ptr<LispFunction>>();
         if (!func) {
             throw LispError("Can't evaluate non function");
         }
 
-        return evalFunction(*func, expr->cdr.getSExpr(), scope);
+        return FunctionCall{*func, expr->cdr.getSExpr(), scope};
     } else {
         throw LispError("Can't evaluate non function");
     }

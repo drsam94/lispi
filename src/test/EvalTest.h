@@ -112,9 +112,9 @@ class EvalTester {
         TS_ASSERT_EQ(evNum("(abs 5.5)"), 5.5_N);
         TS_ASSERT_EQ(evNum("(abs -5.5)"), 5.5_N);
 
-        // The fact that this test works is a test of tail recursion
-        // TODO:
-        //TS_ASSERT_EQ(evNum("(define (count acc) (if (= acc 1000000) acc (count (+ acc 1)))\n"
-        //                  "(count 0)"), 1000000_N);
+        // Without tail call elimination, this would almost certainly smash the stack anf
+        // fail
+        TS_ASSERT_EQ(evNum("(define (count acc) (if (= acc 1000000) acc (count (+ acc 1))))\n"
+                           "(count 0)"), 1000000_N);
     }
 };

@@ -7,7 +7,7 @@ class Evaluator {
     std::shared_ptr<SymbolTable> globalScope;
 
   public:
-    /// If the given datum is atomic, get the value of the desired type (if it
+      /// If the given datum is atomic, get the value of the desired type (if it
     /// exists) otherwise, recursively evaluate until we return something of the
     /// desired type.
     /// return nullopt if there is a failure at any point
@@ -19,12 +19,21 @@ class Evaluator {
     /// Evaluate an argument in the context of expanding an argument to a function in an
     /// SExpr. As the context is a run-time needed computation, throw if the evaluation fails
     /// instead of returning an optional
-    Datum computeArg(const Datum& datum, SymbolTable& st);
+    Datum computeArg(const Datum& datum, SymbolTable& st) {
+        return std::visit(Visitor{
+            [this](const Datum& d) { return d; },
+            [this](const FunctionCall& fc) { return evalFunction(fc); }
+        }, computeArgResult(datum, st));
+    }
+
+    EvalResult computeArgResult(const Datum& datum, SymbolTable& st);
 
     /// Evaluate a lisp function on the given args
-    std::optional<Datum> evalFunction(const LispFunction &func,
-                                      const SExprPtr& args,
-                                      SymbolTable& st);
+    Datum evalFunction(const std::shared_ptr<LispFunction>& func,
+                       const SExprPtr& args,
+                       SymbolTable& st);
+
+    Datum evalFunction(const FunctionCall &fc);
 
     /// On construction, we populate the global scope with all of the special
     /// forms and language-level functions
@@ -34,9 +43,16 @@ class Evaluator {
     Evaluator operator=(const Evaluator&) = delete;
     Evaluator operator==(Evaluator&&) = delete;
     /// Main public interface: evaluates an expression in a given scope
-    std::optional<Datum> eval(const SExprPtr& expr, SymbolTable& scope);
-    std::optional<Datum> eval(const SExprPtr& expr) {
-        return eval(expr, *globalScope);
+    EvalResult eval(const SExprPtr& expr, SymbolTable& scope);
+    Datum evalDatum(const SExprPtr& expr, SymbolTable& scope) {
+        return std::visit(Visitor{
+            [this](const Datum& datum) { return datum; },
+            [this](const FunctionCall& fc) { return evalFunction(fc); }
+        }, eval(expr, scope));
+    }
+
+    Datum eval(const SExprPtr& expr) {
+        return evalDatum(expr, *globalScope);
     }
 };
 
@@ -53,10 +69,8 @@ Evaluator::getOrEvaluate(const Datum& datum, SymbolTable& st) {
         return val.get<T>();
     } else {
         const auto& expr = datum.getSExpr();
-        const std::optional<Datum> result = eval(expr, st);
-        if (!result)
-            return std::nullopt;
-        return getOrEvaluate<T>(*result, st);
+        const Datum result = evalDatum(expr, st);
+        return getOrEvaluate<T>(result, st);
     }
 }
 
