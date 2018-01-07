@@ -10,7 +10,6 @@ class FixedArityFunction {
     using TupleT = std::tuple<TypePack...>;
     static constexpr size_t Arity = std::tuple_size_v<TupleT>;
     static Datum apply(LispArgs args, SymbolTable& st, Evaluator& ev) {
-        TupleT fwdArgs;
         validateArgs(args.begin(), args.end());
         return func(std::move(args), st, ev);
     }
