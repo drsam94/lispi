@@ -8,13 +8,13 @@ class SystemMethods {
     static BuiltInFunc mul;
     static BuiltInFunc div;
 
-    static BuiltInFunc quotient;
-    static BuiltInFunc remainder;
-    static BuiltInFunc modulo;
+    static Datum quotient(Number, Number);
+    static Datum remainder(Number, Number);
+    static Datum modulo(Number, Number);
 
-    static BuiltInFunc inc;
-    static BuiltInFunc dec;
-    static BuiltInFunc abs;
+    static Datum inc(Number);
+    static Datum dec(Number);
+    static Datum abs(Number);
 
     static BuiltInFunc exactQ;
     static BuiltInFunc inexactQ;

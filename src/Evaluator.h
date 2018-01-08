@@ -21,7 +21,7 @@ class Evaluator {
     /// instead of returning an optional
     Datum computeArg(const Datum& datum, SymbolTable& st) {
         return std::visit(Visitor{
-            [this](const Datum& d) { return d; },
+            [](const Datum& d) { return d; },
             [this](const FunctionCall& fc) { return evalFunction(fc); }
         }, computeArgResult(datum, st));
     }
@@ -46,7 +46,7 @@ class Evaluator {
     EvalResult eval(const SExprPtr& expr, SymbolTable& scope);
     Datum evalDatum(const SExprPtr& expr, SymbolTable& scope) {
         return std::visit(Visitor{
-            [this](const Datum& datum) { return datum; },
+            [](const Datum& datum) { return datum; },
             [this](const FunctionCall& fc) { return evalFunction(fc); }
         }, eval(expr, scope));
     }

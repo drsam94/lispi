@@ -99,6 +99,7 @@ class EvalTester {
         TS_ASSERT_EQ(evNum("(remainder 4 2)"), 0_N);
         TS_ASSERT_EQ(evNum("(modulo 4 2)"), 0_N);
         TS_ASSERT_EQ(evNum("(remainder 7 2)"), 1_N);
+        TS_ASSERT_EQ(evNum("(remainder (+ 4 3) 3)"), 1_N);
         TS_ASSERT_EQ(evNum("(remainder 7 -2)"), 1_N);
         TS_ASSERT_EQ(evNum("(remainder -7 3)"), -1_N);
         TS_ASSERT_EQ(evNum("(modulo -7 3)"), 2_N);

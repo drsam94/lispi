@@ -97,7 +97,7 @@ Evaluator::eval(const SExprPtr& expr, SymbolTable& scope) {
 
     if (!expr->car.isAtomic()) {
         const Datum& carFunc = std::visit(Visitor{
-            [this](const Datum& d) { return d; },
+            [](const Datum& d) { return d; },
             [this](const FunctionCall& f) { return evalFunction(f); }
         }, eval(expr->car.getSExpr(), scope));
         const auto& func = carFunc.getAtomicValue<std::shared_ptr<LispFunction>>();

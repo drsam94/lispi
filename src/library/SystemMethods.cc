@@ -2,38 +2,43 @@
 #include "SystemMethods.h"
 #include "data/Data.h"
 #include "Evaluator.h"
+#include "util/function_traits.h"
 #include <iostream>
 #include <utility>
 
-template<BuiltInFunc func, typename... TypePack>
+// TODO: we should be able to deduce argTypes from the function type
+// (see function_traits.h) but I ran into some gcc and clang compiler bugs that I'll
+// need to report later
+template<auto func, typename... argTypes>
 class FixedArityFunction {
-    using TupleT = std::tuple<TypePack...>;
+    using FunctionType = decltype(func);
+    using TupleT = std::tuple<argTypes...>;
     static constexpr size_t Arity = std::tuple_size_v<TupleT>;
     static EvalResult apply(LispArgs args, SymbolTable& st, Evaluator& ev) {
-        validateArgs(args.begin(), args.end());
-        return func(std::move(args), st, ev);
+        TupleT argsToPass = setupArgs(args.begin(), args.end(), st, ev);
+        return std::apply(func, argsToPass);
     }
 
     template <typename FwdIterator>
-    static void validateArgs(FwdIterator start, FwdIterator end) {
-        validateArgsImpl(start, end, std::make_index_sequence<Arity>{});
+    static TupleT setupArgs(FwdIterator start, FwdIterator end, SymbolTable& st, Evaluator& ev) {
+        TupleT argsToPass;
+        validateArgsImpl(start, end, argsToPass, st, ev, std::make_index_sequence<Arity>{});
+        return argsToPass;
     }
 
     template <typename FwdIterator, size_t... Is>
     static void validateArgsImpl(FwdIterator start, FwdIterator end,
-                                 std::index_sequence<Is...>) {
+                                 TupleT& argTuple, SymbolTable& st, Evaluator& ev, std::index_sequence<Is...>) {
         if constexpr (sizeof...(Is) == 0) {
             if (start != end) {
                 throw ArityError(Arity + static_cast<size_t>(std::distance(start, end)),
                                  Arity);
             }
         } else {
-            if (!start->template hasAtomicValue<
-                    std::tuple_element_t<util::index_sequence_head_v<Is...>, TupleT>>()) {
-                // need some sort of type string mapping
-                throw TypeError("Something", "Not that");
-            }
-            validateArgsImpl(++start, end, util::index_sequence_tail_t<Is...>{});
+            constexpr size_t currIndex = util::index_sequence_head_v<Is...>;
+            auto&& arg = ev.getOrEvaluateE<std::tuple_element_t<currIndex, TupleT>>(*start, st);
+            std::get<currIndex>(argTuple) = arg;
+            validateArgsImpl(++start, end, argTuple, st, ev, util::index_sequence_tail_t<Is...>{});
         }
     }
 
@@ -107,30 +112,21 @@ EvalResult SystemMethods::mul(LispArgs args, SymbolTable& st, Evaluator& ev) {
                                   })}};
 }
 
-EvalResult SystemMethods::quotient(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    auto it = args.begin();
-    const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
-    const Number& second = ev.getOrEvaluateE<Number>(*it, st);
+Datum SystemMethods::quotient(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("quotient arguments must be exact");
     }
-    return Datum{Atom{first / second}};
+    return {Atom{first / second}};
 }
 
-EvalResult SystemMethods::remainder(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    auto it = args.begin();
-    const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
-    const Number& second = ev.getOrEvaluateE<Number>(*it, st);
+Datum SystemMethods::remainder(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("remainder arguments must be exact");
     }
     return {Atom{first % second}};
 }
 
-EvalResult SystemMethods::modulo(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    auto it = args.begin();
-    const Number& first  = ev.getOrEvaluateE<Number>(*it++, st);
-    const Number& second = ev.getOrEvaluateE<Number>(*it, st);
+Datum SystemMethods::modulo(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("modulo arguments must be exact");
     }
@@ -138,28 +134,19 @@ EvalResult SystemMethods::modulo(LispArgs args, SymbolTable& st, Evaluator& ev) 
     if (first * second < 0_N) {
         return {Atom{second + remainder}};
     }
-    return Datum{Atom{remainder}};
+    return {Atom{remainder}};
 }
 
-EvalResult SystemMethods::inc(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 1) {
-        throw LispError("1+ requires exactly 1 argument");
-    }
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) + 1_N}};
+Datum SystemMethods::inc(Number x) {
+    return {Atom{x + 1_N}};
 }
 
-EvalResult SystemMethods::dec(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 1) {
-        throw LispError("-1+ requires exactly 1 argument");
-    }
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) - 1_N}};
+Datum SystemMethods::dec(Number x) {
+    return {Atom{x - 1_N}};
 }
 
-EvalResult SystemMethods::abs(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    if (args.size() != 1) {
-        throw LispError("1+ requires exactly 1 argument");
-    }
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st).abs()}};
+Datum SystemMethods::abs(Number x) {
+    return Datum{Atom{x.abs()}};
 }
 
 EvalResult SystemMethods::eq(LispArgs args, SymbolTable& st, Evaluator& ev) {
