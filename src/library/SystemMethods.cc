@@ -9,11 +9,10 @@
 // TODO: we should be able to deduce argTypes from the function type
 // (see function_traits.h) but I ran into some gcc and clang compiler bugs that I'll
 // need to report later
-template<auto func, typename... argTypes>
+template<auto func>
 class FixedArityFunction {
-    using FunctionType = decltype(func);
-    using TupleT = std::tuple<argTypes...>;
-    static constexpr size_t Arity = std::tuple_size_v<TupleT>;
+    using TupleT = typename function_traits<decltype(func)>::ArgTupleType;
+    static constexpr size_t Arity = function_traits<decltype(func)>::arity;
     static EvalResult apply(LispArgs args, SymbolTable& st, Evaluator& ev) {
         TupleT argsToPass = setupArgs(args.begin(), args.end(), st, ev);
         return std::apply(func, argsToPass);
@@ -54,13 +53,13 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("*", &SystemMethods::mul);
     //st.emplace("/", &SystemMethods::div);
 
-    FixedArityFunction<SystemMethods::quotient, Number, Number>::insert(st, "quotient");
-    FixedArityFunction<SystemMethods::remainder, Number, Number>::insert(st, "remainder");
-    FixedArityFunction<SystemMethods::modulo, Number, Number>::insert(st, "modulo");
+    FixedArityFunction<SystemMethods::quotient>::insert(st, "quotient");
+    FixedArityFunction<SystemMethods::remainder>::insert(st, "remainder");
+    FixedArityFunction<SystemMethods::modulo>::insert(st, "modulo");
 
-    FixedArityFunction<SystemMethods::inc, Number>::insert(st, "1+");
-    FixedArityFunction<SystemMethods::dec, Number>::insert(st, "-1+");
-    FixedArityFunction<SystemMethods::abs, Number>::insert(st, "abs");
+    FixedArityFunction<SystemMethods::inc>::insert(st, "1+");
+    FixedArityFunction<SystemMethods::dec>::insert(st, "-1+");
+    FixedArityFunction<SystemMethods::abs>::insert(st, "abs");
 
     st.emplace("=", &SystemMethods::eq);
     st.emplace("<", &SystemMethods::lt);
