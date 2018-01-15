@@ -51,5 +51,10 @@ class LexerTester {
                               {TokenType::Number, "1"},
                               {TokenType::Number, "2"},
                               {TokenType::Paren, ")"}});
+
+        runLexTest("(1+ -1)", {{TokenType::Paren, "("},
+                               {TokenType::Symbol, "1+"},
+                               {TokenType::Number, "-1"},
+                               {TokenType::Paren, ")"}});
     }
 };

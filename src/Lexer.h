@@ -12,25 +12,23 @@
 /// which can either be accessed one at a time through ::next or all at once through
 /// getTokens()
 class Lexer {
-    static bool isParen(char c) { return c == '(' || c == ')'; }
+    static constexpr bool isParen(char c) { return c == '(' || c == ')'; }
 
-    static bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\0'; }
-
-    static bool isNumeric(char c) {
-        // TODO: support exponential forms, etc
-        return (c >= '0' && c <= '9') || c == '.';
+    static constexpr bool isDelimeter(char c) {
+        return isSpace(c) || isParen(c) || isDoubleQuote(c) || c == ';' ||
+               c == '\'' || c == '`' || c == '|' || c == '[' || c == ']' ||
+               c == '{' || c == '}';
     }
-    static bool isDoubleQuote(char c) { return c == '"'; }
+    static constexpr bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\0'; }
 
-    static bool isSymbolic(char c) {
-        return !isParen(c) && !isSpace(c) && !isNumeric(c) && !isDoubleQuote(c);
-    }
+    static constexpr bool isDoubleQuote(char c) { return c == '"'; }
 
     std::pair<Token, std::string_view>
-    getToken(TokenType type, std::string_view input, bool (*pred)(char));
+    getWhile(TokenType type, std::string_view input, bool (*pred)(char));
 
   public:
     std::pair<Token, std::string_view> next(std::string_view input);
 
     std::vector<Token> getTokens(std::string_view input);
+
 };

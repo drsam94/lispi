@@ -105,9 +105,8 @@ class EvalTester {
         TS_ASSERT_EQ(evNum("(modulo -7 3)"), 2_N);
         TS_ASSERT_EQ(evNum("(modulo 7 -3)"), -2_N);
 
-        // TODO: fix up the lexer to be able to support these
-        //TS_ASSERT_EQ(evNum("(1+ 1)"), 2_N);
-        //TS_ASSERT_EQ(evNum("(-1+ 2.5"), 1.5_N);
+        TS_ASSERT_EQ(evNum("(1+ 1)"), 2_N);
+        TS_ASSERT_EQ(evNum("(-1+ 2.5)"), 1.5_N);
         TS_ASSERT_EQ(evNum("(abs 5)"), 5_N);
         TS_ASSERT_EQ(evNum("(abs -5)"), 5_N);
         TS_ASSERT_EQ(evNum("(abs 5.5)"), 5.5_N);

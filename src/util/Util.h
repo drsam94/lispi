@@ -57,6 +57,12 @@ std::string stringConcat(Ts&&... args) {
 // utilities that are extensions of namespace std in some way, i.e like std algorithms
 // or utilities on top of things in the standard library
 namespace util {
+
+// This is like std::accumulate except that, in haskell function syntax, accumulate is
+// ([A], A, (A, A) -> A) -> A
+// while this fold is
+// ([B], A, (B, A) -> A) -> A
+// where type B can be A or can be different
 template<typename ForwardIterator,
          typename Functor,
          typename OpType>

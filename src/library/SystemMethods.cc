@@ -4,11 +4,9 @@
 #include "Evaluator.h"
 #include "util/function_traits.h"
 #include <iostream>
+#include <numeric>
 #include <utility>
 
-// TODO: we should be able to deduce argTypes from the function type
-// (see function_traits.h) but I ran into some gcc and clang compiler bugs that I'll
-// need to report later
 template<auto func>
 class FixedArityFunction {
     using TupleT = typename function_traits<decltype(func)>::ArgTupleType;
@@ -19,9 +17,11 @@ class FixedArityFunction {
     }
 
     template <typename FwdIterator>
-    static TupleT setupArgs(FwdIterator start, FwdIterator end, SymbolTable& st, Evaluator& ev) {
+    static TupleT setupArgs(FwdIterator start, FwdIterator end, SymbolTable& st,
+                            Evaluator& ev) {
         TupleT argsToPass;
-        validateArgsImpl(start, end, argsToPass, st, ev, std::make_index_sequence<Arity>{});
+        validateArgsImpl(start, end, argsToPass, st, ev,
+                         std::make_index_sequence<Arity>{});
         return argsToPass;
     }
 
@@ -85,10 +85,11 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
 }
 
 EvalResult SystemMethods::add(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    return Datum{Atom{util::foldr(args.begin(), args.end(), 0_N,
-                                  [&](const Datum& datum, const Number& number) {
-                                      return number + ev.getOrEvaluateE<Number>(datum, st);
-                                  })}};
+    return Datum{Atom{util::foldr(
+        args.begin(), args.end(), 0_N,
+        [&](const Datum& datum, const Number& number) {
+            return number + ev.getOrEvaluateE<Number>(datum, st);
+        })}};
 }
 
 EvalResult SystemMethods::sub(LispArgs args, SymbolTable& st, Evaluator& ev) {
@@ -105,10 +106,11 @@ EvalResult SystemMethods::sub(LispArgs args, SymbolTable& st, Evaluator& ev) {
 }
 
 EvalResult SystemMethods::mul(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    return Datum{Atom{util::foldr(args.begin(), args.end(), 1_N,
-                                  [&](const Datum& datum, const Number& number) {
-                                      return number * ev.getOrEvaluateE<Number>(datum, st);
-                                  })}};
+    return Datum{Atom{util::foldr(
+        args.begin(), args.end(), 1_N,
+        [&](const Datum& datum, const Number& number) {
+            return number * ev.getOrEvaluateE<Number>(datum, st);
+        })}};
 }
 
 Datum SystemMethods::quotient(Number first, Number second) {

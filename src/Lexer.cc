@@ -1,8 +1,10 @@
-// (c) 2017 Sam Donow
+// (c) 2017-2018 Sam Donow
 #include "Lexer.h"
+#include "util/Util.h"
+#include <cstdlib>
 #include <tuple>
 
-std::pair<Token, std::string_view> Lexer::getToken(TokenType type, std::string_view input,
+std::pair<Token, std::string_view> Lexer::getWhile(TokenType type, std::string_view input,
                                                    bool (*pred)(char)) {
     auto it = input.begin();
     for (; it < input.end() && pred(*it); ++it)
@@ -13,24 +15,45 @@ std::pair<Token, std::string_view> Lexer::getToken(TokenType type, std::string_v
 
 // TODO: use some sort of real parsing/lexing framework
 std::pair<Token, std::string_view> Lexer::next(std::string_view input) {
-    if (isParen(input[0])) {
-        return {{TokenType::Paren, input.substr(0, 1)}, input.substr(1)};
-    } else if (input[0] == '\'') {
-        return {{TokenType::Quote, input.substr(0, 1)}, input.substr(1)};
-    } else if (isSpace(input[0])) {
-        return getToken(TokenType::Trivia, input, &Lexer::isSpace);
-    } else if (isNumeric(input[0])) {
-        return getToken(TokenType::Number, input, &Lexer::isNumeric);
-    } else if (input[0] == '-' && input.size() > 1 && isNumeric(input[1])) {
-        // TODO: undo this hack
-        auto [tok, sv] = getToken(TokenType::Number, input.substr(1), &Lexer::isNumeric);
-        return {{TokenType::Number, std::string(1, '-') + std::string{tok.getText()}}, sv};
-    } else if (isDoubleQuote(input[0])) {
-        // TODO: make this actually work, this only grabs the empty string
-        return getToken(TokenType::String, input, &Lexer::isDoubleQuote);
-    } else {
-        return getToken(TokenType::Symbol, input, &Lexer::isSymbolic);
+    auto it = input.begin();
+    for (; it < input.end() && !isDelimeter(*it); ++it)
+        ;
+    if (it == input.begin()) {
+        // We start with a delimeter.
+        if (isParen(*it)) {
+            return {{TokenType::Paren, input.substr(0, 1)}, input.substr(1)};
+        }
+        if (isSpace(*it)) {
+            return getWhile(TokenType::Trivia, input, &Lexer::isSpace);
+        }
+        if (isDoubleQuote(*it)) {
+            // TODO support escaped quotes
+            for (; it < input.end() && !isDoubleQuote(*it); ++it)
+                ;
+            if (it == input.end()) {
+                throw "Unterminated String";
+            }
+            const size_t len = static_cast<size_t>(std::distance(input.begin(), it));
+            return {{TokenType::String, input.substr(0, len)}, input.substr(len)};
+        }
+        if (*it == '\'') {
+            return {{TokenType::Quote, input.substr(0, 1)}, input.substr(1)};
+        }
+        if (++it == input.end()) {
+            return {{TokenType::Trivia, {}}, {}};
+        }
     }
+    std::string_view tokenText{
+        &*input.begin(), static_cast<size_t>(std::distance(input.begin(), it))};
+    std::string tokenString{tokenText};
+    char* endptr;
+    const char *cstr = +tokenString;
+    std::strtod(cstr, &endptr);
+    if (endptr < cstr + tokenString.size()) {
+        // It's not a number
+        return {{TokenType::Symbol, tokenText}, input.substr(tokenText.size())};
+    }
+    return {{TokenType::Number, tokenText}, input.substr(tokenText.size())};
 }
 
 std::vector<Token> Lexer::getTokens(std::string_view input) {
