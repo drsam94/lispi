@@ -86,7 +86,7 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
 
 EvalResult SystemMethods::add(LispArgs args, SymbolTable& st, Evaluator& ev) {
     return Datum{Atom{util::foldr(
-        args.begin(), args.end(), 0_N,
+        args.begin(), args.end(), Number{0L},
         [&](const Datum& datum, const Number& number) {
             return number + ev.getOrEvaluateE<Number>(datum, st);
         })}};
@@ -107,7 +107,7 @@ EvalResult SystemMethods::sub(LispArgs args, SymbolTable& st, Evaluator& ev) {
 
 EvalResult SystemMethods::mul(LispArgs args, SymbolTable& st, Evaluator& ev) {
     return Datum{Atom{util::foldr(
-        args.begin(), args.end(), 1_N,
+        args.begin(), args.end(), Number{1L},
         [&](const Datum& datum, const Number& number) {
             return number * ev.getOrEvaluateE<Number>(datum, st);
         })}};
@@ -132,18 +132,18 @@ Datum SystemMethods::modulo(Number first, Number second) {
         throw LispError("modulo arguments must be exact");
     }
     Number remainder = first % second;
-    if (first * second < 0_N) {
+    if (first * second < Number{0L}) {
         return {Atom{second + remainder}};
     }
     return {Atom{remainder}};
 }
 
 Datum SystemMethods::inc(Number x) {
-    return {Atom{x + 1_N}};
+    return {Atom{x + Number{1L}}};
 }
 
 Datum SystemMethods::dec(Number x) {
-    return {Atom{x - 1_N}};
+    return {Atom{x - Number{1L}}};
 }
 
 Datum SystemMethods::abs(Number x) {
@@ -219,15 +219,15 @@ EvalResult SystemMethods::inexactQ(LispArgs args, SymbolTable& st, Evaluator& ev
 }
 
 EvalResult SystemMethods::zeroQ(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) == 0_N}};
+    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) == Number{0L}}};
 }
 
 EvalResult SystemMethods::positiveQ(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) > 0_N}};
+    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) > Number{0L}}};
 }
 
 EvalResult SystemMethods::negativeQ(LispArgs args, SymbolTable& st, Evaluator& ev) {
-    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) < 0_N}};
+    return Datum{Atom{ev.getOrEvaluateE<Number>(*args.begin(), st) < Number{0L}}};
 }
 
 EvalResult SystemMethods::car(LispArgs args, SymbolTable& st, Evaluator& ev) {

@@ -100,8 +100,9 @@ uint32_t BigInt::divisionDigit(const BigInt& dividend, const BigInt& divisor) {
     });
 }
 
-void BigInt::divAbsVal(const BigInt& dividend, const BigInt& divisor, BigInt& ret) {
+void BigInt::divAbsVal(const BigInt& dividend, const BigInt& divisor_, BigInt& ret) {
     BigInt currentGrouping{empty_construct{}};
+    const BigInt divisor = divisor_.abs();
     for (uint32_t digit : dividend.data) {
         currentGrouping.data.insert(currentGrouping.data.begin(), digit);
         if (divisor > currentGrouping) {
@@ -152,7 +153,7 @@ void BigInt::canonicalize() {
     }
 }
 
-int64_t BigInt::compare(const BigInt& other) const {
+int64_t BigInt::compare(const BigInt& other) const noexcept {
     if (!sameSign(other)) {
         return isNegative ? -1 : 1;
     } else if (data.size() < other.data.size()) {

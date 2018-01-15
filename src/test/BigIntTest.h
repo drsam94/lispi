@@ -19,6 +19,7 @@ struct BigIntTester {
         TS_ASSERT_REP(BigInt{std::numeric_limits<int32_t>::max()} + BigInt{1},
                     "2147483648");
         TS_ASSERT_EQ(BigInt{28} / BigInt{3}, BigInt{9});
+        TS_ASSERT_EQ(BigInt{4} / BigInt{-2}, BigInt{-2});
         TS_ASSERT_EQ((BigInt{std::numeric_limits<int32_t>::max()} +
                      BigInt{std::numeric_limits<int32_t>::max()}) / BigInt{2},
                      BigInt{std::numeric_limits<int32_t>::max()});

@@ -110,3 +110,13 @@ struct index_sequence_tail {
 template<size_t... Is>
 using index_sequence_tail_t = typename index_sequence_tail<Is...>::type;
 }
+
+// P0515 was approved for C++20, which will allow operator<=> to implicitly generate
+// comparison operators. This provides similar functionality
+#define SPACESHIP_BOILERPLATE(Type, spaceship, T) \
+bool operator==(const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) == T{0}; } \
+bool operator!=(const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) != T{0}; } \
+bool operator< (const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) <  T{0}; } \
+bool operator> (const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) >  T{0}; } \
+bool operator<=(const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) <= T{0}; } \
+bool operator>=(const Type& other) const noexcept(noexcept(spaceship)) { return spaceship(other) >= T{0}; }

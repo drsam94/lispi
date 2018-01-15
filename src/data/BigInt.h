@@ -1,5 +1,7 @@
-// (c) Sam Donow 2017
+// (c) Sam Donow 2017-2018
 #pragma once
+#include "util/Util.h"
+
 #include <cstdint>
 #include <iostream>
 #include <limits>
@@ -68,32 +70,29 @@ class BigInt {
         data.push_back(val);
     }
 
+    // Disable construction from double
+    template<typename = void> BigInt(double) = delete;
+    template<typename = void> BigInt& operator=(double) = delete;
+
     // Comparison Operators
 
-    // P0515 was approved for C++20, which will allow this (as operator<=>) to implicitly
     // generate all the other comparison operators
-    int64_t compare(const BigInt& other) const;
-
-    bool operator==(const BigInt& other) const { return compare(other) == 0; }
-    bool operator!=(const BigInt& other) const { return compare(other) != 0; }
-    bool operator< (const BigInt& other) const { return compare(other) <  0; }
-    bool operator> (const BigInt& other) const { return compare(other) >  0; }
-    bool operator<=(const BigInt& other) const { return compare(other) <= 0; }
-    bool operator>=(const BigInt& other) const { return compare(other) >= 0; }
+    int64_t compare(const BigInt& other) const noexcept;
+    SPACESHIP_BOILERPLATE(BigInt, compare, int64_t)
 
     // Unary Arithmetic Operators
-    BigInt operator-() const {
+    const BigInt operator-() const {
         BigInt ret = *this;
         ret.isNegative = !isNegative;
         return ret;
     }
 
-    const BigInt& operator+() const {
+    const BigInt& operator+() const noexcept {
         return *this;
     }
 
     // Binary Arithmetic Operators
-    BigInt operator+(const BigInt& other) const {
+    const BigInt operator+(const BigInt& other) const {
         BigInt ret{empty_construct{}};
         if (sameSign(other)) {
             sumAbsVal(*this, other, ret);
@@ -106,29 +105,30 @@ class BigInt {
         return ret;
     }
 
-    BigInt operator-(const BigInt& other) const {
+    const BigInt operator-(const BigInt& other) const {
         return *this + -other;
     }
 
-    BigInt operator*(const BigInt& other) const {
+    const BigInt operator*(const BigInt& other) const {
         BigInt ret{empty_construct{}};
         mulAbsVal(*this, other, ret);
         ret.canonicalize();
         return sameSign(other) ? ret : -ret;
     }
 
-    BigInt operator/(const BigInt& other) const {
+    const BigInt operator/(const BigInt& other) const {
         BigInt ret{empty_construct{}};
         divAbsVal(*this, other, ret);
         ret.canonicalize();
         return sameSign(other) ? ret : -ret;
     }
 
-    BigInt operator%(const BigInt& other) const {
+    const BigInt operator%(const BigInt& other) const {
         BigInt ret{empty_construct{}};
         divAbsVal(*this, other, ret);
         ret.canonicalize();
-        return *this - (other * ret);
+        BigInt returnVal = this->abs() - (other.abs() * ret.abs());
+        return isNegative ? -returnVal : returnVal;
     }
 
     // Modifying Assignment Operators
@@ -148,6 +148,15 @@ class BigInt {
         return (*this = *this % other);
     }
 
+    explicit operator double() const noexcept {
+        constexpr double exp = 0x1p32;
+        double result{};
+        for (auto it = data.rbegin(); it != data.rend(); ++it) {
+            result *= exp;
+            result += *it;
+        }
+        return result;
+    }
     friend std::ostream& operator<<(std::ostream& os, const BigInt& val);
 
     BigInt abs() const {
