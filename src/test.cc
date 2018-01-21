@@ -1,9 +1,10 @@
-// (c) Sam Donow 2017
+// (c) Sam Donow 2017-2018
 #include "test/TestSuite.h"
 #include "test/BigIntTest.h"
 #include "test/EvalTest.h"
 #include "test/NumberTest.h"
 #include "test/LexerTest.h"
+#include "test/SmallVectorTest.h"
 
 #include <string>
 #include <unistd.h>
@@ -29,6 +30,11 @@ int main(int argc, char **argv) {
     testers.emplace("big", []()
     {
         BigIntTester tester;
+        tester.run();
+    });
+    testers.emplace("vec", []()
+    {
+        SmallVectorTester tester;
         tester.run();
     });
 
