@@ -9,6 +9,52 @@
 namespace detail {
     static constexpr size_t svDefaultSizeTag = -1;
 }
+
+/// Used for the reverse iterator in SmallVector
+template<typename T>
+class ReversePointer {
+    T* ptr;
+
+  public:
+    ReversePointer(T* p) : ptr(p) {}
+    ReversePointer(const ReversePointer&) = default;
+    ReversePointer& operator=(const ReversePointer&) = default;
+
+    T& operator*() { return *ptr; }
+    const T& operator*() const { return *ptr; }
+    T* operator->() { return ptr; }
+    const T* operator->() const { return ptr; }
+
+    bool operator==(const ReversePointer& other) { return ptr == other.ptr; }
+    bool operator!=(const ReversePointer& other) { return ptr != other.ptr; }
+
+    ReversePointer& operator++() { --ptr; return *this; }
+    ReversePointer  operator++(int) { --ptr; return {ptr + 1}; }
+    ReversePointer& operator--() { ++ptr; return *this; }
+    ReversePointer  operator--(int) { ++ptr; return {ptr - 1}; }
+};
+
+template<typename T>
+class ReverseConstPointer {
+    const T* ptr;
+
+  public:
+    ReverseConstPointer(const T* p) : ptr(p) {}
+    ReverseConstPointer(const ReverseConstPointer&) = default;
+    ReverseConstPointer& operator=(const ReverseConstPointer&) = default;
+
+    const T& operator*() const { return *ptr; }
+    const T* operator->() const { return ptr; }
+
+    bool operator==(const ReverseConstPointer& other) { return ptr == other.ptr; }
+    bool operator!=(const ReverseConstPointer& other) { return ptr != other.ptr; }
+
+    ReverseConstPointer& operator++() { --ptr; return *this; }
+    ReverseConstPointer  operator++(int) { --ptr; return {ptr + 1}; }
+    ReverseConstPointer& operator--() { ++ptr; return *this; }
+    ReverseConstPointer  operator--(int) { ++ptr; return {ptr - 1}; }
+};
+
 template<typename T, size_t SizeParam = detail::svDefaultSizeTag>
 class SmallVector {
     static constexpr size_t DefaultSize = sizeof(void *) * 2 - sizeof(uint8_t);
@@ -83,7 +129,8 @@ class SmallVector {
     }
 
     void moveDown(size_t pos, size_t count) {
-        for (size_t i = pos; pos < size() - count; ++i) {
+        const size_t sizeOrig = size();
+        for (size_t i = pos; i + count < sizeOrig; ++i) {
             bufStart[i] = std::move(bufStart[i + count]);
         }
     }
@@ -160,6 +207,13 @@ class SmallVector {
     const T* end() const noexcept { return bufStart + size(); }
     const T* cend() const noexcept { return end(); }
 
+    ReversePointer<T> rbegin() noexcept { return {bufStart + size() - 1}; }
+    ReverseConstPointer<T> rbegin() const noexcept { return {bufStart + size() - 1}; }
+    ReverseConstPointer<T> crbegin() const noexcept { return rbegin(); }
+
+    ReversePointer<T> rend() noexcept { return {bufStart - 1}; }
+    ReverseConstPointer<T> rend() const noexcept { return {bufStart - 1}; }
+    ReverseConstPointer<T> crend() const noexcept { return rend(); }
 
     bool empty() const noexcept { return size() == 0; }
 
@@ -247,7 +301,7 @@ class SmallVector {
     }
 
     T* erase(const T* pos, const T* last) {
-        const size_t posVal = pos - bufStart - 1;
+        const size_t posVal = pos - bufStart;
         const size_t count = static_cast<size_t>(last - pos);
         moveDown(posVal, count);
         setSize(size() - count);
@@ -280,15 +334,43 @@ class SmallVector {
 
     SmallVector(const SmallVector& other) : bufStart(sso.buf) {
         sso.size = 0;
-        resize(other.size());
-        insert(begin(), other.begin(), other.end());
+        insert(end(), other.begin(), other.end());
     }
 
-    SmallVector& operator=(SmallVector& other) {
+    SmallVector& operator=(const SmallVector& other) {
         clear();
-        insert(begin(), other.begin(), other.end());
+        insert(end(), other.begin(), other.end());
         return *this;
     }
 
-    // Move assignment and construction are a bit tricky with SSO. Will do soon
+    SmallVector(SmallVector&& other) : bufStart(sso.buf) {
+        sso.size = 0;
+        *this = std::move(other);
+    }
+
+    SmallVector& operator=(SmallVector&& other) {
+        clear();
+        if (!other.isSSO()) {
+            if (!isSSO()) {
+                // cleanup our buffer
+                operator delete[](bufStart);
+            }
+            // grab the other's buffer;
+            bufStart = other.bufStart;
+            nonSSO.bufEnd = other.nonSSO.bufEnd;
+            nonSSO.capEnd = other.nonSSO.capEnd;
+            // set up other to not attempt cleanup on destruction
+            other.bufStart = other.sso.buf;
+            other.sso.size = 0;
+        } else {
+            // We can't just grab the buffer if it's in SSO, so move each elem
+            // in in this case
+            bufStart = sso.buf;
+            sso.size = other.sso.size;
+            for (T& elem : other) {
+                push_back(std::move(elem));
+            }
+        }
+        return *this;
+    }
 };

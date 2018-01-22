@@ -43,5 +43,27 @@ class SmallVectorTester {
             sum += x;
         }
         TS_ASSERT_EQ(sum, 110);
+
+        SmallVector<int, 3> svCopy{sv};
+        TS_ASSERT_EQ(svCopy.size(), 10);
+        TS_ASSERT_EQ(svCopy[0], 1);
+        TS_ASSERT_EQ(svCopy.back(), 10);
+
+        SmallVector<int, 3> svc2;
+        svc2 = svCopy;
+        TS_ASSERT_EQ(svc2.size(), 10);
+        TS_ASSERT_EQ(svc2[1], 2);
+        TS_ASSERT_EQ(svc2.back(), 10);
+
+        svCopy.erase(std::remove_if(svCopy.begin(), svCopy.end(),
+            [](int x) { return x % 2 == 0; }), svCopy.end());
+        TS_ASSERT_EQ(svCopy.size(), 5);
+        TS_ASSERT_EQ(svCopy[0], 1);
+        TS_ASSERT_EQ(svCopy.back(), 9);
+
+        SmallVector<int, 3> svMoved{std::move(svc2)};
+        TS_ASSERT_EQ(svMoved.size(), 10);
+        TS_ASSERT_EQ(svMoved[0], 1);
+        TS_ASSERT_EQ(svMoved.back(), 10);
     }
 };

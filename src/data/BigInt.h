@@ -1,12 +1,12 @@
 // (c) Sam Donow 2017-2018
 #pragma once
 #include "util/Util.h"
+#include "util/SmallVector.h"
 
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <numeric>
-#include <vector>
 
 // Arbitrary Precision integer
 class BigInt {
@@ -19,7 +19,9 @@ class BigInt {
 
     // Implementation: Signed Magnitude; a twos complement representation seems quite
     // difficult with the varying size
-    // TODO: use a small vector type that supports SSO
+    // We use a small vector with SSO to avoid heap allocations in the common case
+    // TODO: fix remaining bugs in SmallVector, and use here;
+    //SmallVector<uint32_t> data{};
     std::vector<uint32_t> data{};
     bool isNegative = false;
     static constexpr uint32_t MAX_DIGIT = std::numeric_limits<uint32_t>::max();
