@@ -65,5 +65,22 @@ class SmallVectorTester {
         TS_ASSERT_EQ(svMoved.size(), 10);
         TS_ASSERT_EQ(svMoved[0], 1);
         TS_ASSERT_EQ(svMoved.back(), 10);
+
+        svMoved.clear();
+        TS_ASSERT_EQ(svMoved.size(), 0);
+        svMoved.push_back(2);
+        TS_ASSERT_EQ(svMoved.size(), 1);
+        TS_ASSERT_EQ(svMoved[0], 2);
+        svMoved.push_back(3);
+        svMoved.push_back(4);
+        svMoved.pop_back();
+        TS_ASSERT_EQ(svMoved.back(), 3);
+        TS_ASSERT_EQ(svMoved.size(), 2);
+
+        SmallVector<int, 3> test;
+        test.push_back(2);
+        SmallVector<int, 3> test2 = std::move(test);
+        TS_ASSERT_EQ(test2.size(), 1);
+        TS_ASSERT_EQ(test2[0], 2);
     }
 };

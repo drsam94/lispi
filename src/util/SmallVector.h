@@ -181,7 +181,9 @@ class SmallVector {
     T& operator[](size_t pos) noexcept { return bufStart[pos]; }
     const T& operator[](size_t pos) const noexcept { return bufStart[pos]; }
 
-    T& at(size_t pos) { return const_cast<T&>(static_cast<const SmallVector *>(this)->at(pos)); }
+    T& at(size_t pos) {
+        return const_cast<T&>(static_cast<const SmallVector *>(this)->at(pos));
+    }
     const T& at(size_t pos) const  {
         if (pos < size()) {
             return bufStart[pos];
@@ -350,11 +352,11 @@ class SmallVector {
 
     SmallVector& operator=(SmallVector&& other) {
         clear();
+        if (!isSSO()) {
+            // cleanup our buffer
+            operator delete[](bufStart);
+        }
         if (!other.isSSO()) {
-            if (!isSSO()) {
-                // cleanup our buffer
-                operator delete[](bufStart);
-            }
             // grab the other's buffer;
             bufStart = other.bufStart;
             nonSSO.bufEnd = other.nonSSO.bufEnd;
@@ -366,7 +368,7 @@ class SmallVector {
             // We can't just grab the buffer if it's in SSO, so move each elem
             // in in this case
             bufStart = sso.buf;
-            sso.size = other.sso.size;
+            sso.size = 0;
             for (T& elem : other) {
                 push_back(std::move(elem));
             }

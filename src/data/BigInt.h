@@ -20,9 +20,7 @@ class BigInt {
     // Implementation: Signed Magnitude; a twos complement representation seems quite
     // difficult with the varying size
     // We use a small vector with SSO to avoid heap allocations in the common case
-    // TODO: fix remaining bugs in SmallVector, and use here;
-    //SmallVector<uint32_t> data{};
-    std::vector<uint32_t> data{};
+    SmallVector<uint32_t> data{};
     bool isNegative = false;
     static constexpr uint32_t MAX_DIGIT = std::numeric_limits<uint32_t>::max();
 
