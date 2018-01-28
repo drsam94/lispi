@@ -3,24 +3,20 @@
 
 #include "data/BigInt.h"
 #include "data/Error.h"
+#include "data/Rational.h"
 #include "util/Util.h"
 
 #include <iostream>
 #include <math.h>
 #include <variant>
 
-// Type to encapsulate numbers in lisp. Only implementing a subset of features for now
+/// Type to encapsulate numbers as represented in Scheme
 class Number {
-    // TODO:
+    using Rat = Rational<BigInt>;
+    // TODO: add support for Complex
     // std::variant<BigInt, double, Rational, Complex> data
-    // Sadly this means that we can't ever do simple integer math on longs, but
-    // BigInt should be optimized for the small cases
-    std::variant<BigInt, double> data;
+    std::variant<BigInt, double, Rat> data;
 
-    static bool fuzzyEq(double a, double b) {
-        static constexpr double epsilon = 0x1p-20;
-        return fabs(a - b) < epsilon;
-    }
   public:
     // Default construct with long value, as long will get coerced to other
     // types in operations
@@ -28,22 +24,50 @@ class Number {
     Number (long lnum) : data{BigInt{static_cast<int>(lnum)}} {}
     Number (const BigInt& bnum) : data{bnum} {}
     Number (double dnum) : data{dnum} {}
+    Number (const Rat& rat) : data{rat} {}
 
-    const Number operator+(const Number& other) const {
+  private:
+    template<template<typename> typename F, typename R>
+    const R opImpl(const Number& other) const {
         return std::visit(Visitor {
-            [](double v1, const BigInt& v2) { return Number{v1 + static_cast<double>(v2)}; },
-            [](const BigInt& v1, double v2) { return Number{static_cast<double>(v1) + v2}; },
-            [](const auto& v1, const auto& v2) { return Number{v1 + v2}; }
+            [](double v1, const BigInt& v2) {
+                return R{F<double>{}(v1, static_cast<double>(v2))};
+            },
+            [](const BigInt& v1, double v2) {
+                return R{F<double>{}(static_cast<double>(v1), v2)};
+            },
+
+            [](const Rat& v1, double v2) {
+                return R{F<double>{}(static_cast<double>(v1), v2)};
+            },
+            [](double v1, const Rat& v2) {
+                return R{F<double>{}(v1, static_cast<double>(v2))};
+            },
+
+            [](double v1, double v2) {
+                return R{F<double>{}(v1, v2)};
+            },
+            [](const BigInt& v1, const BigInt& v2) {
+                return R{F<BigInt>{}(v1, v2)};
+            },
+            [](const Rat& v1, const Rat& v2) {
+                return R{F<Rat>{}(v1, v2)};
+            },
+            [](const BigInt& v1, const Rat& v2) {
+                return R{F<Rat>{}(Rat{v1},v2)};
+            },
+            [](const Rat& v1, const BigInt& v2) {
+                return R{F<Rat>{}(v1, Rat{v2})};
+            }
         }, data, other.data);
     }
 
-    const Number operator-(const Number& other) const {
-        return std::visit(Visitor {
-            [](double v1, const BigInt& v2) { return Number{v1 - static_cast<double>(v2)}; },
-            [](const BigInt& v1, double v2) { return Number{static_cast<double>(v1) - v2}; },
-            [](const auto& v1, const auto& v2) { return Number{v1 - v2}; }
-        }, data, other.data);
-    }
+  public:
+    const Number operator+(const Number& other) const { return opImpl<std::plus, Number>(other); }
+
+    const Number operator-(const Number& other) const { return opImpl<std::minus, Number>(other); }
+
+    const Number operator*(const Number& other) const { return opImpl<std::multiplies, Number>(other); }
 
     const Number operator-() const {
         return std::visit([](const auto& v1) { return Number{-v1}; }, data);
@@ -53,20 +77,18 @@ class Number {
         return std::visit([](const auto& v1) { return Number{+v1}; }, data);
     }
 
-    const Number operator*(const Number& other) const {
-        return std::visit(Visitor {
-            [](double v1, const BigInt& v2) { return Number{v1 * static_cast<double>(v2)}; },
-            [](const BigInt& v1, double v2) { return Number{static_cast<double>(v1) * v2}; },
-            [](const auto& v1, const auto& v2) { return Number{v1 * v2}; },
-        }, data, other.data);
-    }
-
-    // Note: (long / long) => Rational in Lisp
     const Number operator/(const Number& other) const {
         return std::visit(Visitor {
             [](double v1, const BigInt& v2) { return Number{v1 / static_cast<double>(v2)}; },
+            [](double v1, const Rat& v2) { return Number{v1 / static_cast<double>(v2)}; },
             [](const BigInt& v1, double v2) { return Number{static_cast<double>(v1) / v2}; },
-            [](const auto& v1, const auto& v2) { return Number{v1 / v2}; }
+            [](const Rat& v1, double v2) { return Number{static_cast<double>(v1) / v2}; },
+            [](double v1, double v2) { return Number{v1 / v2}; },
+
+            [](const Rat& v1, const BigInt& v2) { return Number{v1 / Rat{v2}}; },
+            [](const BigInt& v1, const Rat& v2) { return Number{Rat{v1} / v2}; },
+            [](const BigInt& v1, const BigInt& v2) { return Number{Rat{v1, v2}}; },
+            [](const Rat& v1, const Rat& v2) { return Number{v1 / v2}; }
         }, data, other.data);
     }
 
@@ -84,34 +106,22 @@ class Number {
     Number& operator%=(const Number& other) { return *this = *this % other; }
 
     bool operator==(const Number& other) const {
-        return std::visit(
-            Visitor{[](double v1, double v2) { return fuzzyEq(v1, v2); },
-                    [](double v1, const BigInt& v2) { return fuzzyEq(v1, static_cast<double>(v2)); },
-                    [](const BigInt& v1, double v2) { return fuzzyEq(static_cast<double>(v1), v2); },
-                    [](const auto& v1, const auto& v2) { return v1 == v2; }},
-            data, other.data);
+        return opImpl<std::equal_to, bool>(other);
     }
-    bool operator!=(const Number& other) const { return !(*this == other); }
-
+    bool operator!=(const Number& other) const {
+        return opImpl<std::not_equal_to, bool>(other);
+    }
     bool operator<(const Number& other) const {
-        return std::visit(Visitor {
-            [](double x, const BigInt& y) { return x < static_cast<double>(y); },
-            [](const BigInt& x, double y) { return static_cast<double>(x) < y; },
-            [](const auto& x, const auto& y) { return x < y; }
-        }, data, other.data);
+        return opImpl<std::less, bool>(other);
     }
     bool operator>(const Number& other) const {
-        return std::visit(Visitor {
-            [](double x, const BigInt& y) { return x > static_cast<double>(y); },
-            [](const BigInt& x, double y) { return static_cast<double>(x) > y; },
-            [](const auto& x, const auto& y) { return x > y; }
-        }, data, other.data);
+        return opImpl<std::greater, bool>(other);
     }
     bool operator<=(const Number& other) const {
-        return !(*this > other);
+        return opImpl<std::less_equal, bool>(other);
     }
     bool operator>=(const Number& other) const {
-        return !(*this < other);
+        return opImpl<std::greater_equal, bool>(other);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Number& num) {
@@ -119,10 +129,17 @@ class Number {
     }
 
     Number abs() const {
-        return std::visit(Visitor{[](const BigInt& v) -> Number { return v.abs(); },
-                                  [](double v) -> Number { return fabs(v); }},
-                          data);
+        return std::visit(Visitor{
+            [](const BigInt& v) -> Number { return v.abs(); },
+            [](double v) -> Number { return fabs(v); },
+            [](const Rat& v) -> Number { return v < Rat{BigInt{0}} ? -v : v; }
+        }, data);
     }
 
     bool isExact() const { return std::holds_alternative<BigInt>(data); }
+
+    template<typename T>
+    decltype(auto) as() const {
+        return std::get<T>(data);
+    }
 };

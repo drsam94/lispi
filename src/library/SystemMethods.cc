@@ -51,7 +51,7 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     st.emplace("+", &SystemMethods::add);
     st.emplace("-", &SystemMethods::sub);
     st.emplace("*", &SystemMethods::mul);
-    //st.emplace("/", &SystemMethods::div);
+    st.emplace("/", &SystemMethods::div);
 
     FixedArityFunction<SystemMethods::quotient>::insert(st, "quotient");
     FixedArityFunction<SystemMethods::remainder>::insert(st, "remainder");
@@ -113,11 +113,24 @@ EvalResult SystemMethods::mul(LispArgs args, SymbolTable& st, Evaluator& ev) {
         })}};
 }
 
+EvalResult SystemMethods::div(LispArgs args, SymbolTable& st, Evaluator& ev) {
+    Number quot{1L};
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        const Number val = ev.getOrEvaluateE<Number>(*it, st);
+        if (it == args.begin() && args.size() > 1) {
+            quot = val;
+        } else {
+            quot /= val;
+        }
+    }
+    return Datum{Atom{quot}};
+}
+
 Datum SystemMethods::quotient(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("quotient arguments must be exact");
     }
-    return {Atom{first / second}};
+    return {Atom{Number{first.as<BigInt>() / second.as<BigInt>()}}};
 }
 
 Datum SystemMethods::remainder(Number first, Number second) {

@@ -12,24 +12,24 @@ class Rational {
 
     Rational(Numeric x, Numeric y) : high(x), low(y) {
         bool isNegative = false;
-        if (high < 0) {
-            high *= -1;
+        if (high < Numeric{0}) {
+            high *= Numeric{-1};
             isNegative = !isNegative;
         }
-        if (low < 0) {
-            low *= -1;
+        if (low < Numeric{0}) {
+            low *= Numeric{-1};
             isNegative = !isNegative;
         }
         const Numeric z = gcd(high, low);
         high /= z;
         low  /= z;
         if (isNegative) {
-            high *= -1;
+            high *= Numeric{-1};
         }
     }
 
-    explicit Rational(Numeric x) : Rational(x, {1}) {}
-    Rational() : Rational({0}, {1}) {}
+    explicit Rational(Numeric x) : Rational(x, Numeric{1}) {}
+    Rational() : Rational(Numeric{0}, Numeric{1}) {}
     static Numeric gcd(const Numeric& a, const Numeric& b) {
         if (b == Numeric{}) {
             return a;

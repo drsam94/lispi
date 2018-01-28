@@ -5,6 +5,8 @@
 #include "Parser.h"
 #include "Evaluator.h"
 
+#include "test/TestSuite.h"
+
 class EvalTester : public Tester<EvalTester> {
     Datum eval(std::string_view programText) {
         Lexer lex;
@@ -105,6 +107,10 @@ class EvalTester : public Tester<EvalTester> {
         TS_ASSERT_EQ(evNum("(remainder -7 3)"), -1L);
         TS_ASSERT_EQ(evNum("(modulo -7 3)"), 2L);
         TS_ASSERT_EQ(evNum("(modulo 7 -3)"), -2L);
+
+        TS_ASSERT_EQ(evNum("(/ 2)"), Rational<BigInt>(BigInt{1}, BigInt{2}));
+        TS_ASSERT_EQ(eval("(= (/ 2 3) (/ 4 6))"), Datum::True());
+        TS_ASSERT_EQ(eval("(= (+ (/ 2 3) 1) (/ 5 3))"), Datum::True());
 
         TS_ASSERT_EQ(evNum("(1+ 1)"), 2L);
         TS_ASSERT_EQ(evNum("(-1+ 2.5)"), 1.5);

@@ -55,6 +55,8 @@ class ReverseConstPointer {
     ReverseConstPointer  operator--(int) { ++ptr; return {ptr - 1}; }
 };
 
+/// A variant of std::vector that supports SSO (Small-Size Optimization)
+/// while satisfying the same interface as much as possible
 template<typename T, size_t SizeParam = detail::svDefaultSizeTag>
 class SmallVector {
     static constexpr size_t DefaultSize = sizeof(void *) * 2 - sizeof(uint8_t);
