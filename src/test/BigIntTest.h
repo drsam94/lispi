@@ -1,11 +1,12 @@
-// (c) Sam Donow 2017;
+// (c) Sam Donow 2017-2018
 #pragma once
 #include "test/TestSuite.h"
 #include "data/BigInt.h"
 
-struct BigIntTester {
+struct BigIntTester : Tester<BigIntTester> {
 
     void run() {
+        initialize();
         TS_ASSERT_EQ(BigInt{1} * BigInt{2}, BigInt{2});
         TS_ASSERT_EQ(BigInt{5} + BigInt{4}, BigInt{9});
         TS_ASSERT_EQ(BigInt{5} - BigInt{4}, BigInt{1});

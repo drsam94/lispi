@@ -58,7 +58,7 @@ class BigInt {
     // the default would be zero, but because I use outparams so much, the empty construct
     // one is much more useful
     BigInt() : data{} { data.push_back(0); }
-    BigInt(int val) : data{} {
+    explicit BigInt(int val) : data{} {
         if (val >= 0) {
             data.push_back(static_cast<uint32_t>(val));
         } else {
@@ -66,7 +66,7 @@ class BigInt {
             data.push_back(static_cast<uint32_t>(-val));
         }
     }
-    BigInt(uint32_t val) : data{} {
+    explicit BigInt(uint32_t val) : data{} {
         data.push_back(val);
     }
 

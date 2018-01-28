@@ -2,53 +2,36 @@
 #include "test/TestSuite.h"
 #include "test/BigIntTest.h"
 #include "test/EvalTest.h"
-#include "test/NumberTest.h"
 #include "test/LexerTest.h"
+#include "test/NumberTest.h"
+#include "test/RationalTest.h"
 #include "test/SmallVectorTest.h"
 
+#include <algorithm>
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
-#include <functional>
 int main(int argc, char **argv) {
-    std::unordered_map<std::string, std::function<void()>> testers;
-    testers.emplace("lex", []()
-    {
-        LexerTester tester;
-        tester.run();
-    });
-    testers.emplace("num", []()
-    {
-        NumberTester tester;
-        tester.run();
-    });
-    testers.emplace("eval", []()
-    {
-        EvalTester tester;
-        tester.run();
-    });
-    testers.emplace("big", []()
-    {
-        BigIntTester tester;
-        tester.run();
-    });
-    testers.emplace("vec", []()
-    {
-        SmallVectorTester tester;
-        tester.run();
-    });
-
     int opt;
-    auto it = testers.end();
-    while ((opt = getopt(argc, argv, "t:")) != -1) {
+    auto it = TestSuite::testers->end();
+    while ((opt = getopt(argc, argv, "lt:")) != -1) {
         switch (opt) {
             case 't':
-                it = testers.find(optarg);
+                it = TestSuite::testers->find(optarg);
+                if (it == TestSuite::testers->end()) {
+                    std::cout << "No tester named " << optarg << "\n";
+                    return 1;
+                }
                 break;
+            case 'l':
+                for (const auto& entry : *TestSuite::testers) {
+                    std::cout << entry.first << "\n";
+                }
+                return 0;
         }
     }
-    if (it == testers.end()) {
-        for (const auto& entry : testers) {
+    if (it == TestSuite::testers->end()) {
+        for (const auto& entry : *TestSuite::testers) {
             entry.second();
         }
     } else {

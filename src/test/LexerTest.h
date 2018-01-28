@@ -1,11 +1,11 @@
-// (c) Sam Donow 2017
+// (c) Sam Donow 2017-2018
 #pragma once
 #include "test/TestSuite.h"
 #include "Lexer.h"
 
 #include <vector>
 #include <string_view>
-class LexerTester {
+class LexerTester : public Tester<LexerTester> {
     void runLexTest(std::string_view programText,
                     std::vector<Token> expectedTokens) {
         Lexer lex;
@@ -21,6 +21,7 @@ class LexerTester {
 
   public:
     void run() {
+        initialize();
         runLexTest("(+ 1 2)", {{TokenType::Paren, "("},
                                {TokenType::Symbol, "+"},
                                {TokenType::Number, "1"},

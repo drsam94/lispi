@@ -1,10 +1,12 @@
+// (c) Sam Donow 2017-2018
 #include "test/TestSuite.h"
 #include "data/Number.h"
 #pragma once
 
-struct NumberTester {
+struct NumberTester : Tester<NumberTester> {
 #define N(x) Number{x##L}
     void run() {
+        initialize();
         TS_ASSERT_EQ(N(1) * N(2), N(2));
         TS_ASSERT_EQ(N(1) + N(2), N(3));
         TS_ASSERT_EQ(N(1) + Number{2.5}, Number{3.5});

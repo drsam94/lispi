@@ -1,11 +1,11 @@
-// (c) Sam Donow 2017
+// (c) Sam Donow 2017-2018
 #pragma once
 
 #include "Lexer.h"
 #include "Parser.h"
 #include "Evaluator.h"
 
-class EvalTester {
+class EvalTester : public Tester<EvalTester> {
     Datum eval(std::string_view programText) {
         Lexer lex;
         Parser parser;
@@ -38,6 +38,7 @@ class EvalTester {
 
   public:
     void run() {
+        initialize();
         TS_ASSERT_EQ(evNum("(+ 45 23)"), 68L);
         TS_ASSERT_EQ(evNum("(+ 1 2 3 4 )"), 10L);
         TS_ASSERT_EQ(evNum("((lambda (x) x) 4)"), 4L);

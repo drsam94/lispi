@@ -1,13 +1,32 @@
-// (c) 2017 Sam Donow
+// (c) 2017-2018 Sam Donow
 #pragma once
+#include <functional>
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <typeinfo>
+#include <unordered_map>
 
 // This file contains macros for writing very lightweight unit test runners
-namespace TestSuite {
-    inline size_t passedTests = 0;
-    inline size_t failedTests = 0;
-}
+struct TestSuite {
+    static inline size_t passedTests = 0;
+    static inline size_t failedTests = 0;
+    static inline std::optional<std::unordered_map<std::string, std::function<void(void)>>> testers;
+};
+
+template<typename T>
+struct Tester : TestSuite {
+    __attribute__((constructor)) static void initialize() {
+        static bool once = false;
+        if (once) { return; }
+        if (testers == std::nullopt) { testers.emplace(); }
+        once = true;
+        testers->emplace(typeid(T).name(), []() {
+            T tester;
+            tester.run();
+        });
+    }
+};
 
 #define TEST_ASSERT_(x, msg)                                                   \
     do {                                                                       \
