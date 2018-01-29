@@ -26,7 +26,7 @@ endif
 CFLAGS = -g --std=c++17 -I. -Werror $(WARNINGS) $(SANITIZE) $(STDLIB) -O$(OPT)
 OBJDIR = ../build/$(VARIANT).$(CC)
 BINDIR = ../bin/$(VARIANT).$(CC)
-OBJS = $(OBJDIR)/Lexer.o $(OBJDIR)/Parser.o $(OBJDIR)/Evaluator.o $(OBJDIR)/data/Data.o \
+OBJS = $(OBJDIR)/core/Lexer.o $(OBJDIR)/core/Parser.o $(OBJDIR)/core/Evaluator.o $(OBJDIR)/data/Data.o \
 	   $(OBJDIR)/data/BigInt.o $(OBJDIR)/library/SpecialForms.o $(OBJDIR)/library/SystemMethods.o
 
 all: debug

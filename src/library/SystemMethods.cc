@@ -1,7 +1,7 @@
 // (c) Sam Donow 2017
 #include "SystemMethods.h"
 #include "data/Data.h"
-#include "Evaluator.h"
+#include "core/Evaluator.h"
 #include "util/function_traits.h"
 #include <iostream>
 #include <numeric>

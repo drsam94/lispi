@@ -1,6 +1,6 @@
 // (c) Sam Donow 2017
 #include "SpecialForms.h"
-#include "Evaluator.h"
+#include "core/Evaluator.h"
 
 void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("lambda", &SpecialForms::lambdaImpl);

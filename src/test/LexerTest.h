@@ -1,7 +1,7 @@
 // (c) Sam Donow 2017-2018
 #pragma once
 #include "test/TestSuite.h"
-#include "Lexer.h"
+#include "core/Lexer.h"
 
 #include <vector>
 #include <string_view>

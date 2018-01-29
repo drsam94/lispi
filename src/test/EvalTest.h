@@ -1,9 +1,9 @@
 // (c) Sam Donow 2017-2018
 #pragma once
 
-#include "Lexer.h"
-#include "Parser.h"
-#include "Evaluator.h"
+#include "core/Lexer.h"
+#include "core/Parser.h"
+#include "core/Evaluator.h"
 
 #include "test/TestSuite.h"
 

@@ -1,7 +1,7 @@
 // (c) Sam Donow 2017
-#include "Evaluator.h"
-#include "Lexer.h"
-#include "Parser.h"
+#include "core/Evaluator.h"
+#include "core/Lexer.h"
+#include "core/Parser.h"
 
 #include <iostream>
 #include <string>
@@ -18,7 +18,7 @@ std::pair<string_view, bool> getline() {
         free(line);
         line = nullptr;
     }
-    line = readline(">");
+    line = readline("> ");
 
     if (line != nullptr && *line != '\0') {
         add_history(line);
