@@ -3,6 +3,7 @@
 #include "util/Util.h"
 #include "util/SmallVector.h"
 
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <limits>
@@ -58,16 +59,26 @@ class BigInt {
     // the default would be zero, but because I use outparams so much, the empty construct
     // one is much more useful
     BigInt() : data{} { data.push_back(0); }
-    explicit BigInt(int val) : data{} {
-        if (val >= 0) {
-            data.push_back(static_cast<uint32_t>(val));
-        } else {
+    explicit BigInt(int32_t val) : BigInt(static_cast<uint32_t>(std::abs(val))) {
+        if (val < 0) {
             isNegative = true;
-            data.push_back(static_cast<uint32_t>(-val));
         }
     }
     explicit BigInt(uint32_t val) : data{} {
         data.push_back(val);
+    }
+
+    explicit BigInt(uint64_t val) : data{} {
+        data.push_back(static_cast<uint32_t>(val));
+        if (val > std::numeric_limits<uint32_t>::max()) {
+            data.push_back(val >> 32);
+        }
+    }
+
+    explicit BigInt(int64_t val) : BigInt(static_cast<uint64_t>(std::labs(val))) {
+        if (val < 0) {
+            isNegative = true;
+        }
     }
 
     // Disable construction from double
@@ -153,6 +164,18 @@ class BigInt {
         double result{};
         for (auto it = data.rbegin(); it != data.rend(); ++it) {
             result *= exp;
+            result += *it;
+        }
+        return result;
+    }
+
+    explicit operator uint64_t() const {
+        if (data.size() > 2) {
+            throw "BigInt too large";
+        }
+        uint64_t result{};
+        for (auto it = data.rbegin(); it != data.rend(); ++it) {
+            result <<= 32;
             result += *it;
         }
         return result;

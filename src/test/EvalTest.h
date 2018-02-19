@@ -119,6 +119,9 @@ class EvalTester : public Tester<EvalTester> {
         TS_ASSERT_EQ(evNum("(abs 5.5)"), 5.5);
         TS_ASSERT_EQ(evNum("(abs -5.5)"), 5.5);
 
+        TS_ASSERT_EQ(evNum(R"#((string-length "123"))#"), 3L);
+        TS_ASSERT_EQ(eval(R"#((string=? "abcde" "efghi"))#"), Datum::False());
+        TS_ASSERT_EQ(eval(R"#((string-cl=? "aBcDe" "AbCdE"))#"), Datum::True());
         // Without tail call elimination, this would almost certainly smash the stack anf
         // fail
         TS_ASSERT_EQ(evNum("(define (count acc) (if (= acc 1000000) acc (count (+ acc 1))))\n"

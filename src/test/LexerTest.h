@@ -57,5 +57,10 @@ class LexerTester : public Tester<LexerTester> {
                                {TokenType::Symbol, "1+"},
                                {TokenType::Number, "-1"},
                                {TokenType::Paren, ")"}});
+
+        runLexTest("(string-length \"123\")", {{TokenType::Paren, "("},
+                                               {TokenType::Symbol, "string-length"},
+                                               {TokenType::String, "123"},
+                                               {TokenType::Paren, ")"}});
     }
 };

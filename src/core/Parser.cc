@@ -22,8 +22,38 @@ Atom Parser::atomFromToken(const Token& token) {
         return Atom{Symbol{std::string{token.getText()}}};
     }
     case TokenType::String: {
-        // TODO: handle this properly with quotes and escape sequences and stuff
-        return Atom{std::string{token.getText()}};
+        std::string transformed;
+        bool isEscaped = false;
+        for (char c : token.getText()) {
+            if (isEscaped) {
+                switch (c) {
+                    case '\\':
+                        transformed.push_back('\\');
+                        break;
+                    case '"':
+                        transformed.push_back('"');
+                        break;
+                    case 'n':
+                        transformed.push_back('\n');
+                        break;
+                    case 't':
+                        transformed.push_back('\t');
+                        break;
+                    case 'f':
+                        transformed.push_back('\f');
+                        break;
+                    default:
+                        throw LispError("Unsupported Escaped sequence \\", c);
+                }
+                isEscaped = false;
+            }
+            if (c == '\\') {
+                isEscaped = true;
+            } else {
+                transformed.push_back(c);
+            }
+        }
+        return Atom{std::move(transformed)};
     }
     case TokenType::Number: {
         // TODO handle this properly for more general inputs

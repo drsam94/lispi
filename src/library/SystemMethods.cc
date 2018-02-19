@@ -3,17 +3,19 @@
 #include "data/Data.h"
 #include "core/Evaluator.h"
 #include "util/function_traits.h"
+#include <cctype>
 #include <iostream>
 #include <numeric>
 #include <utility>
 
 template<auto func>
 class FixedArityFunction {
+    // TODO: support Pass-by-reference parameters (std::reference_wrapper?)
     using TupleT = typename function_traits<decltype(func)>::ArgTupleType;
     static constexpr size_t Arity = function_traits<decltype(func)>::arity;
     static EvalResult apply(LispArgs args, SymbolTable& st, Evaluator& ev) {
         TupleT argsToPass = setupArgs(args.begin(), args.end(), st, ev);
-        return std::apply(func, argsToPass);
+        return Datum{Atom{std::apply(func, argsToPass)}};
     }
 
     template <typename FwdIterator>
@@ -60,6 +62,11 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     FixedArityFunction<SystemMethods::inc>::insert(st, "1+");
     FixedArityFunction<SystemMethods::dec>::insert(st, "-1+");
     FixedArityFunction<SystemMethods::abs>::insert(st, "abs");
+
+    FixedArityFunction<SystemMethods::stringLength>::insert(st, "string-length");
+    FixedArityFunction<SystemMethods::stringRef>::insert(st, "string-ref");
+    FixedArityFunction<SystemMethods::stringEq>::insert(st, "string=?");
+    FixedArityFunction<SystemMethods::stringCIEq>::insert(st, "ctring-ci=?");
 
     st.emplace("=", &SystemMethods::eq);
     st.emplace("<", &SystemMethods::lt);
@@ -126,41 +133,59 @@ EvalResult SystemMethods::div(LispArgs args, SymbolTable& st, Evaluator& ev) {
     return Datum{Atom{quot}};
 }
 
-Datum SystemMethods::quotient(Number first, Number second) {
+Number SystemMethods::quotient(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("quotient arguments must be exact");
     }
-    return {Atom{Number{first.as<BigInt>() / second.as<BigInt>()}}};
+    return Number{first.as<BigInt>() / second.as<BigInt>()};
 }
 
-Datum SystemMethods::remainder(Number first, Number second) {
+Number SystemMethods::remainder(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("remainder arguments must be exact");
     }
-    return {Atom{first % second}};
+    return first % second;
 }
 
-Datum SystemMethods::modulo(Number first, Number second) {
+Number SystemMethods::modulo(Number first, Number second) {
     if (unlikely(!(first.isExact() && second.isExact()))) {
         throw LispError("modulo arguments must be exact");
     }
     Number remainder = first % second;
     if (first * second < Number{0L}) {
-        return {Atom{second + remainder}};
+        return second + remainder;
     }
-    return {Atom{remainder}};
+    return remainder;
 }
 
-Datum SystemMethods::inc(Number x) {
-    return {Atom{x + Number{1L}}};
+Number SystemMethods::inc(Number x) {
+    return x + Number{1L};
 }
 
-Datum SystemMethods::dec(Number x) {
-    return {Atom{x - Number{1L}}};
+Number SystemMethods::dec(Number x) {
+    return x - Number{1L};
 }
 
-Datum SystemMethods::abs(Number x) {
-    return Datum{Atom{x.abs()}};
+Number SystemMethods::abs(Number x) {
+    return x.abs();
+}
+
+Number SystemMethods::stringLength(std::string s) {
+    return Number{s.size()};
+}
+
+char SystemMethods::stringRef(std::string s, Number index) {
+    return s[index.ulong()];
+}
+
+bool SystemMethods::stringEq(std::string s1, std::string s2) {
+    return s1 == s2;
+}
+
+bool SystemMethods::stringCIEq(std::string s1, std::string s2) {
+    return std::mismatch(s1.begin(), s1.end(), s2.begin(), [](char c1, char c2) {
+            return std::toupper(c1) == std::toupper(c2);
+            }) == make_pair(s1.end(), s2.end());
 }
 
 EvalResult SystemMethods::eq(LispArgs args, SymbolTable& st, Evaluator& ev) {

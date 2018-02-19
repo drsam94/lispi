@@ -52,7 +52,7 @@ class LispFunction {
 
 // An Atom is any entity in lisp other than an SExpr (aka pair, cons cell, list)
 class Atom {
-    std::variant<std::monostate, Number, bool,
+    std::variant<std::monostate, Number, bool, char,
                  std::string, Symbol, std::shared_ptr<LispFunction>> data{};
   public:
     Atom() = default;

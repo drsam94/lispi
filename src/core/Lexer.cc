@@ -27,9 +27,9 @@ std::pair<Token, std::string_view> Lexer::next(std::string_view input) {
             return getWhile(TokenType::Trivia, input, &Lexer::isSpace);
         }
         if (isDoubleQuote(*it)) {
-            // TODO support escaped quotes
-            for (; it < input.end() && !isDoubleQuote(*it); ++it)
-                ;
+            bool isEscaped = false;
+            for (++it; it < input.end() && !(!isEscaped && isDoubleQuote(*it)); ++it)
+                isEscaped = !isEscaped && *it == '\\';
             if (it == input.end()) {
                 throw "Unterminated String";
             }

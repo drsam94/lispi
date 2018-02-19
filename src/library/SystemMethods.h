@@ -8,13 +8,19 @@ class SystemMethods {
     static BuiltInFunc mul;
     static BuiltInFunc div;
 
-    static Datum quotient(Number, Number);
-    static Datum remainder(Number, Number);
-    static Datum modulo(Number, Number);
+    // TODO: pass params by const reference
+    static Number quotient(Number, Number);
+    static Number remainder(Number, Number);
+    static Number modulo(Number, Number);
 
-    static Datum inc(Number);
-    static Datum dec(Number);
-    static Datum abs(Number);
+    static Number inc(Number);
+    static Number dec(Number);
+    static Number abs(Number);
+
+    static Number stringLength(std::string);
+    static char stringRef(std::string, Number idx);
+    static bool stringEq(std::string, std::string);
+    static bool stringCIEq(std::string, std::string);
 
     static BuiltInFunc exactQ;
     static BuiltInFunc inexactQ;

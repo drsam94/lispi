@@ -21,7 +21,8 @@ class Number {
     // Default construct with long value, as long will get coerced to other
     // types in operations
     Number() : data{BigInt{0}} {}
-    Number (long lnum) : data{BigInt{static_cast<int>(lnum)}} {}
+    Number (long lnum) : data{BigInt{lnum}} {}
+    Number (unsigned long ulnum) : data{BigInt{ulnum}} {}
     Number (const BigInt& bnum) : data{bnum} {}
     Number (double dnum) : data{dnum} {}
     Number (const Rat& rat) : data{rat} {}
@@ -141,5 +142,9 @@ class Number {
     template<typename T>
     decltype(auto) as() const {
         return std::get<T>(data);
+    }
+
+    uint64_t ulong() const {
+        return static_cast<uint64_t>(std::get<BigInt>(data));
     }
 };
