@@ -34,7 +34,7 @@ std::pair<Token, std::string_view> Lexer::next(std::string_view input) {
                 throw "Unterminated String";
             }
             const size_t len = static_cast<size_t>(std::distance(input.begin(), it));
-            return {{TokenType::String, input.substr(0, len)}, input.substr(len)};
+            return {{TokenType::String, input.substr(1, len - 1)}, input.substr(len + 1)};
         }
         if (*it == '\'') {
             return {{TokenType::Quote, input.substr(0, 1)}, input.substr(1)};

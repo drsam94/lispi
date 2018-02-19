@@ -66,7 +66,7 @@ void SystemMethods::insertIntoScope(SymbolTable& st) {
     FixedArityFunction<SystemMethods::stringLength>::insert(st, "string-length");
     FixedArityFunction<SystemMethods::stringRef>::insert(st, "string-ref");
     FixedArityFunction<SystemMethods::stringEq>::insert(st, "string=?");
-    FixedArityFunction<SystemMethods::stringCIEq>::insert(st, "ctring-ci=?");
+    FixedArityFunction<SystemMethods::stringCIEq>::insert(st, "string-ci=?");
 
     st.emplace("=", &SystemMethods::eq);
     st.emplace("<", &SystemMethods::lt);
