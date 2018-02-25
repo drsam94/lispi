@@ -51,6 +51,8 @@ std::ostream& operator<<(std::ostream& os, const SExpr& expr) {
     return os;
 }
 
+// TODO: for eqv? support pointer equality of SExprs and of reference-counted
+// strings
 bool Datum::operator==(const Datum& other) const {
     return std::visit(
         Visitor{[](const Atom& a1, const Atom& a2) { return a1 == a2; },

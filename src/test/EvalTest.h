@@ -122,7 +122,12 @@ class EvalTester : public Tester<EvalTester> {
         TS_ASSERT_EQ(evNum(R"#((string-length "123"))#"), 3L);
         TS_ASSERT_EQ(eval(R"#((string=? "abcde" "efghi"))#"), Datum::False());
         TS_ASSERT_EQ(eval(R"#((string-ci=? "aBcDe" "AbCdE"))#"), Datum::True());
-        // Without tail call elimination, this would almost certainly smash the stack anf
+
+        TS_ASSERT_EQ(evNum("(case (+ 1 2) ((1) 0) ((3) 1))"), 1L);
+        TS_ASSERT_EQ(evNum("(case (- 5 3) ((0 1 2) 0) (else 5))"), 0L);
+        TS_ASSERT_EQ(evNum("(case (* 7 5) ((0 1) 0) ((2 3) 1) (else 2))"), 2L);
+
+        // Without tail call elimination, this would almost certainly smash the stack and
         // fail
         TS_ASSERT_EQ(evNum("(define (count acc) (if (= acc 1000000) acc (count (+ acc 1))))\n"
                            "(count 0)"), 1000000L);

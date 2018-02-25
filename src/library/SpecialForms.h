@@ -9,7 +9,7 @@
 class SpecialForms {
     // All special forms documented here; will be implemented as I get to them
     //static BuiltInFunc accessImpl;
-    //static BuiltInFunc caseImpl;
+    static BuiltInFunc caseImpl;
     //static BuiltInFunc declareImpl;
     //static BuiltInFunc defineIntegrableImpl;
     //static BuiltInFunc delayImpl;

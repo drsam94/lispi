@@ -12,6 +12,7 @@ void SpecialForms::insertIntoScope(SymbolTable& st) {
     st.emplace("or", &SpecialForms::orImpl);
     st.emplace("begin", &SpecialForms::beginImpl);
     st.emplace("cond", &SpecialForms::condImpl);
+    st.emplace("case", &SpecialForms::caseImpl);
 }
 
 std::pair<std::vector<Symbol>, Datum> parseFuncDefn(LispArgs args) {
@@ -156,5 +157,31 @@ EvalResult SpecialForms::condImpl(LispArgs args, SymbolTable& st, Evaluator& ev)
         }
     }
     // ret value unspecified if all conds false and no else
+    return Datum{};
+}
+
+EvalResult SpecialForms::caseImpl(LispArgs args, SymbolTable& st, Evaluator& ev) {
+    auto it = args.begin();
+    if (unlikely(args.empty())) {
+        throw LispError("Case clause must contain a key");
+    }
+    Datum key = ev.computeArg(*it, st);
+
+    for (++it; it != args.end(); ++it) {
+        const SExprPtr& expr = it->getSExpr();
+        if (expr->car.isAtomic()) {
+            std::optional<Symbol> sym = expr->car.getAtomicValue<Symbol>();
+            if (sym && +*sym == "else") {
+                return beginImpl(LispArgs(expr->cdr.getSExpr()), st, ev);
+            }
+        } else {
+            for (const Datum& datum : LispArgs(expr->car.getSExpr())) {
+                if (key == datum) {
+                    return beginImpl(LispArgs(expr->cdr.getSExpr()), st, ev);
+                }
+            }
+        }
+    }
+    // ret value unspecified if no matches and no else
     return Datum{};
 }
